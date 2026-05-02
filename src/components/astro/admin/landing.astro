@@ -1,0 +1,321 @@
+---
+import Panel from "../ui/panel.astro";
+import db from "../../../db";
+import { settings } from "../../../db/schema";
+import Alert from "../../../components/react/alert";
+
+const { errorMessage = "" } = Astro.props;
+let successMessage = Astro.url.searchParams.get('success') === 'true';
+
+// 1. Load settings from database
+let settingsMap: Record<string, string> = {};
+try {
+  const rows = await db.select().from(settings);
+  for (const row of rows) {
+    settingsMap[row.key] = row.value || '';
+  }
+} catch(e) {
+  console.error('Landing settings DB error:', e);
+}
+
+let announcements: any[] = [];
+if (settingsMap['artikel_pengumuman']) {
+  try {
+    announcements = JSON.parse(settingsMap['artikel_pengumuman']);
+  } catch(e) {}
+}
+
+// Map Values
+const school_name = settingsMap['school_name'] || 'SMK Unggul Mandiri';
+const school_tagline = settingsMap['school_tagline'] || 'Masa Depan Cerah Dimulai dari Sini';
+const school_subtitle = settingsMap['school_subtitle'] || 'Penerimaan Peserta Didik Baru (PPDB) Tahun Ajaran 2026/2027 telah dibuka. Daftarkan putra-putri Anda sekarang.';
+const school_email = settingsMap['school_email'] || 'info@smkunggul.sch.id';
+const school_phone = settingsMap['school_phone'] || '(021) 1234567';
+const school_whatsapp = settingsMap['school_whatsapp'] || '08123456789';
+const school_address = settingsMap['school_address'] || 'Jl. Pendidikan No. 45, Jakarta Pusat';
+
+const inputClass = "w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-semibold";
+const textareaClass = "w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm";
+const labelClass = "block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2";
+const selectClass = "w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-semibold";
+---
+
+<Panel activeMenu="setting-landing">
+  <form id="landing-settings-form" method="POST" class="space-y-6 pb-12" enctype="multipart/form-data">
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Pengaturan Landing Page</h2>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+          Sesuaikan seluruh konten di halaman utama secara menyeluruh.
+        </p>
+      </div>
+      <div>
+        <button id="save-settings-btn" type="button" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-indigo-500/20 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Perubahan
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Status -->
+    {successMessage && (
+      <Alert client:load type="success" message="Pengaturan landing page berhasil diperbarui!" />
+    )}
+    
+    {errorMessage && (
+      <Alert client:load type="error" message={errorMessage} />
+    )}
+
+    <!-- 1. IDENTITAS & HERO -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-sm space-y-4">
+        <h3 class="font-bold text-slate-900 dark:text-white text-lg border-b border-slate-100 dark:border-slate-800 pb-3 mb-2 flex items-center gap-2">
+          Nama Sekolah & Identitas
+        </h3>
+        <div>
+          <label class={labelClass}>Nama Sekolah</label>
+          <input type="text" name="school_name" value={school_name} class={inputClass} required />
+        </div>
+        <div>
+          <label class={labelClass}>Logo Sekolah</label>
+          <div class="flex items-center gap-4">
+            {settingsMap['school_logo'] ? (
+              <div class="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
+                <img src={settingsMap['school_logo']} alt="Logo" class="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <div class="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800 border-dashed border-2 border-slate-200 dark:border-slate-700 flex-shrink-0 flex items-center justify-center text-2xl">
+                📚
+              </div>
+            )}
+            <div class="flex-1">
+              <input type="file" name="school_logo" accept="image/*" class={inputClass} />
+              <p class="text-[10px] text-slate-400 mt-1">Format: PNG, JPG, WEBP. Maks 2MB.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class={labelClass}>Email Sekolah</label>
+          <input type="email" name="school_email" value={school_email} class={inputClass} />
+        </div>
+        <div>
+          <label class={labelClass}>No. Telepon</label>
+          <input type="text" name="school_phone" value={school_phone} class={inputClass} />
+        </div>
+        <div>
+          <label class={labelClass}>No. WhatsApp (Admin)</label>
+          <input type="text" name="school_whatsapp" value={school_whatsapp} class={inputClass} />
+        </div>
+        <div>
+          <label class={labelClass}>Alamat Sekolah</label>
+          <textarea name="school_address" rows="3" class={textareaClass}>{school_address}</textarea>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-sm space-y-4">
+        <h3 class="font-bold text-slate-900 dark:text-white text-lg border-b border-slate-100 dark:border-slate-800 pb-3 mb-2 flex items-center gap-2">
+          Hero Section
+        </h3>
+        <div>
+          <label class={labelClass}>Tagline Utama (Headline)</label>
+          <input type="text" name="school_tagline" value={school_tagline} class={inputClass} required />
+        </div>
+        <div>
+          <label class={labelClass}>Sub-Judul Hero</label>
+          <textarea name="school_subtitle" rows="5" class={textareaClass} required>{school_subtitle}</textarea>
+        </div>
+        <div>
+          <label class={labelClass}>Brosur PDF</label>
+          <input type="file" name="school_brochure" accept=".pdf" class={inputClass} />
+          {settingsMap['school_brochure'] && (
+            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <span>📄 Brosur saat ini:</span>
+              <a href={settingsMap['school_brochure']} target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1">
+                Lihat Brosur
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. PENGUMUMAN -->
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-sm">
+      <h3 class="font-bold text-slate-900 dark:text-white text-lg border-b border-slate-100 dark:border-slate-800 pb-3 mb-6">
+        Pengumuman PPDB (Maks 3 Item)
+      </h3>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((num) => {
+          const selectedId = settingsMap[`landing_announcement_${num}`] || '';
+
+          return (
+            <div class="p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 rounded-2xl space-y-4 relative">
+              <span class="absolute top-2 right-2 w-6 h-6 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-400">0{num}</span>
+              <div>
+                <label class={labelClass}>Pilih Pengumuman Slot {num}</label>
+                <select name={`landing_announcement_${num}`} class={selectClass}>
+                  <option value="">-- Kosongkan Slot --</option>
+                  {announcements.map((ann: any) => (
+                    <option value={ann.id} selected={selectedId === ann.id}>
+                      {ann.title} ({ann.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    <!-- 3. ALUR PENDAFTARAN -->
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-6">
+        <h3 class="font-bold text-slate-900 dark:text-white text-lg">
+          Alur Pendaftaran (4 Langkah)
+        </h3>
+        <span class="text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Langkah Berurutan</span>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((num) => {
+          const title = settingsMap[`alur_${num}_title`] || (num === 1 ? 'Registrasi Akun' : num === 2 ? 'Unggah Berkas' : num === 3 ? 'Ujian Seleksi' : 'Pengumuman');
+          const desc = settingsMap[`alur_${num}_desc`] || (num === 1 ? 'Daftarkan akun menggunakan NISN dan lengkapi biodata dasar.' : num === 2 ? 'Upload scan rapor, kartu keluarga, dan akta kelahiran.' : num === 3 ? 'Mengikuti tes potensi akademik dan tes wawancara.' : 'Melihat hasil seleksi di dashboard pendaftar.');
+          const icon = settingsMap[`alur_${num}_icon`] || (num === 1 ? '👤' : num === 2 ? '📄' : num === 3 ? '✏️' : '🎉');
+
+          return (
+            <div class="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 rounded-3xl space-y-4 transition-all hover:shadow-md group">
+              <div class="flex items-start justify-between">
+                <span class="font-black text-3xl text-slate-200 dark:text-slate-800 group-hover:text-indigo-500/20 transition-colors">0{num}</span>
+                <div class="flex flex-col items-end gap-2">
+                   <div id={`preview-alur-${num}`} class="w-14 h-14 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-3xl shadow-sm transition-transform group-hover:scale-110">
+                    {icon}
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <div>
+                  <label class={labelClass}>Ikon (Emoji)</label>
+                  <div class="flex gap-2">
+                    <input 
+                      type="text" 
+                      name={`alur_${num}_icon`} 
+                      value={icon} 
+                      id={`input-alur-${num}`}
+                      class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center text-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20" 
+                      maxlength="10"
+                      oninput={`document.getElementById('preview-alur-${num}').innerText = this.value`}
+                    />
+                    <div class="grid grid-cols-4 gap-1">
+                      {['👤', '📄', '✏️', '🎉', '📋', '🎓', '📅', '🔍'].map(e => (
+                        <button type="button" class="w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-200 transition-colors cursor-pointer" onclick={`document.getElementById('input-alur-${num}').value = '${e}'; document.getElementById('preview-alur-${num}').innerText = '${e}';`}>
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class={labelClass}>Judul Alur</label>
+                  <input type="text" name={`alur_${num}_title`} value={title} class={inputClass} required />
+                </div>
+                <div>
+                  <label class={labelClass}>Deskripsi</label>
+                  <textarea name={`alur_${num}_desc`} rows="3" class={textareaClass} required>{desc}</textarea>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    <!-- 4. KEUNGGULAN -->
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-6">
+        <h3 class="font-bold text-slate-900 dark:text-white text-lg">
+          Keunggulan Sekolah (4 Item)
+        </h3>
+        <span class="text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Fitur Utama</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((num) => {
+          const title = settingsMap[`keunggulan_${num}_title`] || (num === 1 ? 'Fasilitas Modern' : num === 2 ? 'Kurikulum Industri' : num === 3 ? 'Ekskul Beragam' : 'Guru Berpengalaman');
+          const desc = settingsMap[`keunggulan_${num}_desc`] || (num === 1 ? 'Laboratorium komputer, ruang kelas ber-AC, dan perpustakaan lengkap.' : num === 2 ? 'Materi disesuaikan dengan kebutuhan industri masa kini.' : num === 3 ? 'Wadahi minat dan bakat di bidang olahraga, seni, dan teknologi.' : 'Tenaga pendidik profesional dan bersertifikat nasional.');
+          const icon = settingsMap[`keunggulan_${num}_icon`] || (num === 1 ? '🏫' : num === 2 ? '📚' : num === 3 ? '🏆' : '👨‍🏫');
+
+          return (
+            <div class="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 rounded-3xl space-y-4 transition-all hover:shadow-md group">
+              <div class="flex items-start justify-between">
+                <span class="font-black text-3xl text-slate-200 dark:text-slate-800 group-hover:text-indigo-500/20 transition-colors">0{num}</span>
+                <div id={`preview-keunggulan-${num}`} class="w-14 h-14 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-3xl shadow-sm transition-transform group-hover:scale-110">
+                  {icon}
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <div>
+                  <label class={labelClass}>Ikon (Emoji)</label>
+                  <div class="flex gap-2">
+                    <input 
+                      type="text" 
+                      name={`keunggulan_${num}_icon`} 
+                      value={icon} 
+                      id={`input-keunggulan-${num}`}
+                      class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center text-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20" 
+                      maxlength="10"
+                      oninput={`document.getElementById('preview-keunggulan-${num}').innerText = this.value`}
+                    />
+                    <div class="grid grid-cols-4 gap-1">
+                      {['🏫', '📚', '🏆', '👨‍🏫', '💻', '🧪', '⚽', '🎨'].map(e => (
+                        <button type="button" class="w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-200 transition-colors cursor-pointer" onclick={`document.getElementById('input-keunggulan-${num}').value = '${e}'; document.getElementById('preview-keunggulan-${num}').innerText = '${e}';`}>
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class={labelClass}>Judul Keunggulan</label>
+                  <input type="text" name={`keunggulan_${num}_title`} value={title} class={inputClass} required />
+                </div>
+                <div>
+                  <label class={labelClass}>Deskripsi</label>
+                  <textarea name={`keunggulan_${num}_desc`} rows="3" class={textareaClass} required>{desc}</textarea>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    </div>
+
+  </form>
+</Panel>
+
+<script>
+  const saveBtn = document.getElementById('save-settings-btn');
+  const form = document.getElementById('landing-settings-form') as HTMLFormElement;
+
+  saveBtn?.addEventListener('click', () => {
+    if (form && !form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    (window as any).showConfirmModal({
+      title: 'Simpan Perubahan',
+      message: 'Apakah Anda yakin ingin menyimpan perubahan pada halaman landing page ini?',
+      onConfirm: () => {
+        form?.submit();
+      }
+    });
+  });
+</script>

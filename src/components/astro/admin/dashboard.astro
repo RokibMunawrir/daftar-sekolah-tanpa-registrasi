@@ -1,0 +1,234 @@
+---
+import Panel from "../ui/panel.astro";
+import db from "../../../db";
+import { santri, pendaftaran, tahunAjaran } from "../../../db/schema";
+import { count, eq, desc } from "drizzle-orm";
+
+// Fetch real data from database
+let totalPendaftar = 0;
+let totalBaru = 0;
+let totalPindahan = 0;
+let recentPendaftar: any[] = [];
+let activeTahun: any = null;
+let ppdbTahun: any = null;
+
+try {
+  const [totalRow] = await db.select({ total: count() }).from(santri);
+  totalPendaftar = totalRow?.total || 0;
+
+  const [baruRow] = await db.select({ total: count() }).from(pendaftaran).where(eq(pendaftaran.statusSantri, 'Baru'));
+  totalBaru = baruRow?.total || 0;
+
+  const [pindahanRow] = await db.select({ total: count() }).from(pendaftaran).where(eq(pendaftaran.statusSantri, 'Pindahan'));
+  totalPindahan = pindahanRow?.total || 0;
+
+  const recentRows = await db
+    .select({
+      id: santri.id,
+      namaLengkap: santri.namaLengkap,
+      jenjangPendaftaran: pendaftaran.jenjangPendaftaran,
+      statusSantri: pendaftaran.statusSantri,
+      createdAt: santri.createdAt,
+    })
+    .from(santri)
+    .leftJoin(pendaftaran, eq(pendaftaran.santriId, santri.id))
+    .orderBy(desc(santri.createdAt))
+    .limit(5);
+  recentPendaftar = recentRows;
+
+  const aktivRows = await db.select().from(tahunAjaran).where(eq(tahunAjaran.isActive, 1)).limit(1);
+  activeTahun = aktivRows[0] || null;
+
+  const ppdbRows = await db.select().from(tahunAjaran).where(eq(tahunAjaran.isOpenPpdb, 1)).limit(1);
+  ppdbTahun = ppdbRows[0] || null;
+} catch (e) {
+  console.error('Dashboard DB error:', e);
+}
+
+const stats = [
+  {
+    label: "Total Pendaftar",
+    value: totalPendaftar.toLocaleString('id-ID'),
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    color: "indigo",
+    desc: "Total calon siswa terdaftar"
+  },
+  {
+    label: "Siswa Baru",
+    value: totalBaru.toLocaleString('id-ID'),
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>`,
+    color: "amber",
+    desc: "Pendaftar baru"
+  },
+  {
+    label: "Siswa Pindahan",
+    value: totalPindahan.toLocaleString('id-ID'),
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    color: "emerald",
+    desc: "Siswa pindahan"
+  },
+  {
+    label: "Status PPDB",
+    value: ppdbTahun ? "Terbuka" : "Ditutup",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    color: ppdbTahun ? "emerald" : "rose",
+    desc: ppdbTahun ? `T.A. ${ppdbTahun.tahun}` : "PPDB belum dibuka"
+  }
+];
+
+// Helper: relative time
+const relativeTime = (date: Date | string | null) => {
+  if (!date) return '-';
+  const d = new Date(date);
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return `${diff} detik lalu`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
+  return `${Math.floor(diff / 86400)} hari lalu`;
+};
+---
+
+<Panel>
+    <div class="space-y-8 pb-12">
+      <!-- Welcome Banner -->
+      <div class="relative overflow-hidden bg-indigo-600 rounded-3xl p-8 text-white shadow-2xl shadow-indigo-500/20">
+        <div class="relative z-10">
+          <h2 class="text-3xl font-bold mb-2">Selamat Datang, Admin! 👋</h2>
+          <p class="text-indigo-100 max-w-md">
+            {activeTahun 
+              ? `Ringkasan pendaftaran siswa baru untuk periode tahun ajaran ${activeTahun.tahun}.`
+              : 'Belum ada tahun ajaran aktif. Silakan atur di menu Pengaturan → Tahun Ajaran.'}
+          </p>
+          <div class="mt-6 flex gap-4">
+            <a href="/admin/pendaftar" class="bg-white text-indigo-600 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-indigo-50 transition-colors shadow-lg">
+              Lihat Semua Pendaftar
+            </a>
+            {!ppdbTahun && (
+              <a href="/admin/settings/tahun-ajaran" class="bg-indigo-500/40 backdrop-blur-md text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-indigo-500/60 transition-colors border border-indigo-400/30">
+                Buka PPDB
+              </a>
+            )}
+          </div>
+        </div>
+        
+        <!-- Abstract background decoration -->
+        <div class="absolute top-0 right-0 -translate-y-12 translate-x-12 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50"></div>
+        <div class="absolute bottom-0 right-0 translate-y-12 -translate-x-12 w-48 h-48 bg-white rounded-full blur-3xl opacity-10"></div>
+      </div>
+    
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((item) => (
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow group">
+            <div class="flex justify-between items-start mb-4">
+              <div class={`p-3 rounded-xl bg-${item.color}-50 dark:bg-${item.color}-500/10 text-${item.color}-600 dark:text-${item.color}-400 group-hover:scale-110 transition-transform`}>
+                <Fragment set:html={item.icon} />
+              </div>
+            </div>
+            <h3 class="text-slate-500 dark:text-slate-400 text-sm font-medium">{item.label}</h3>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{item.value}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{item.desc}</p>
+          </div>
+        ))}
+      </div>
+    
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Recent Activity Table -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="font-bold text-slate-900 dark:text-white text-lg">Pendaftar Terbaru</h3>
+            <a href="/admin/pendaftar" class="text-indigo-600 dark:text-indigo-400 text-sm font-semibold hover:underline">Lihat Semua</a>
+          </div>
+          <div class="overflow-x-auto">
+            {recentPendaftar.length === 0 ? (
+              <div class="flex flex-col items-center justify-center py-12 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 text-slate-300 dark:text-slate-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <p class="font-medium">Belum ada pendaftar</p>
+                <p class="text-xs mt-1 text-slate-400">Data pendaftar akan muncul di sini</p>
+              </div>
+            ) : (
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="bg-slate-50/50 dark:bg-slate-800/50">
+                    <th class="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nama Calon Siswa</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Jenjang</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Waktu</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                  {recentPendaftar.map((p) => (
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td class="px-6 py-4">
+                        <div class="font-semibold text-slate-900 dark:text-white">{p.namaLengkap}</div>
+                      </td>
+                      <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{p.jenjangPendaftaran || '-'}</td>
+                      <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{relativeTime(p.createdAt)}</td>
+                      <td class="px-6 py-4">
+                        <span class={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          p.statusSantri === 'Baru' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' :
+                          'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
+                        }`}>
+                          {p.statusSantri || 'Baru'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+    
+        <!-- Right Sidebar Info -->
+        <div class="space-y-6">
+          <!-- Active Tahun Ajaran -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 class="font-bold text-slate-900 dark:text-white mb-4">Info Tahun Ajaran</h3>
+            <div class="space-y-4">
+              <div class="flex gap-4">
+                <div class="flex-shrink-0 w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex flex-col items-center justify-center border border-indigo-100 dark:border-indigo-500/20">
+                  <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">T.A.</span>
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900 dark:text-white">
+                    {activeTahun ? activeTahun.tahun : 'Belum Diatur'}
+                  </p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    {activeTahun ? 'Tahun Ajaran Aktif' : 'Silakan atur tahun ajaran'}
+                  </p>
+                </div>
+              </div>
+              <div class="flex gap-4">
+                <div class={`flex-shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center border ${ppdbTahun ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                  <span class={`text-xs font-bold uppercase ${ppdbTahun ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>PPDB</span>
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900 dark:text-white">
+                    {ppdbTahun ? `T.A. ${ppdbTahun.tahun}` : 'PPDB Ditutup'}
+                  </p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    {ppdbTahun ? 'Penerimaan sedang dibuka' : 'Buka melalui pengaturan'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <a href="/admin/settings/tahun-ajaran" class="block w-full mt-6 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center">
+              Kelola Tahun Ajaran
+            </a>
+          </div>
+    
+          <!-- Quick Tips -->
+          <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-3xl text-white shadow-xl">
+            <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            </div>
+            <h4 class="font-bold mb-2">Tips Admin</h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Gunakan fitur filter di halaman "List Pendaftar" untuk mencari siswa. Data yang ditampilkan di dashboard selalu diperbarui secara realtime dari database.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+</Panel>

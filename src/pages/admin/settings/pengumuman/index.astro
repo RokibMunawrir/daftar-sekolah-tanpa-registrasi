@@ -1,0 +1,102 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import Announcement from "../../../../components/astro/admin/announcement.astro";
+import db from "../../../../db";
+import { settings } from "../../../../db/schema";
+import { eq } from "drizzle-orm";
+import fs from "node:fs";
+import path from "node:path";
+
+let successMessage = Astro.url.searchParams.get('success') === 'true';
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const fd = await Astro.request.formData();
+    const action = String(fd.get('action') || 'create');
+
+    if (action === 'delete') {
+      const idToDelete = String(fd.get('id'));
+      const existing = await db.select().from(settings).where(eq(settings.key, 'artikel_pengumuman')).then(r => r[0]);
+      let currentAnnouncements = [];
+      if (existing && existing.value) {
+        currentAnnouncements = JSON.parse(existing.value);
+      }
+      currentAnnouncements = currentAnnouncements.filter((item: any) => item.id !== idToDelete);
+      
+      if (existing) {
+        await db.update(settings).set({ value: JSON.stringify(currentAnnouncements), updatedAt: new Date() }).where(eq(settings.key, 'artikel_pengumuman'));
+      } else {
+        await db.insert(settings).values({ key: 'artikel_pengumuman', value: JSON.stringify(currentAnnouncements) });
+      }
+      return Astro.redirect('/admin/settings/pengumuman?success=true');
+    }
+
+    const title = String(fd.get('title') || '');
+    const category = String(fd.get('category') || 'Info');
+    const content = String(fd.get('content') || '');
+    const driveLink = String(fd.get('driveLink') || '');
+    const isPinned = fd.has('isPinned');
+    
+    let fileUrl = "";
+    const file = fd.get('file_upload') as any;
+    if (file && file.size > 0) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const ext = path.extname(file.name);
+      const fileName = `doc_${Date.now()}${ext}`;
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+      fileUrl = `/uploads/${fileName}`;
+    }
+
+    const existing = await db.select().from(settings).where(eq(settings.key, 'artikel_pengumuman')).then(r => r[0]);
+    let currentAnnouncements = [];
+    if (existing && existing.value) {
+      currentAnnouncements = JSON.parse(existing.value);
+    }
+
+    const newAnn = {
+      id: crypto.randomUUID(),
+      title,
+      category,
+      content,
+      driveLink,
+      fileUrl,
+      isPinned,
+      date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      views: 0
+    };
+
+    currentAnnouncements.unshift(newAnn);
+
+    if (existing) {
+      await db.update(settings).set({ value: JSON.stringify(currentAnnouncements), updatedAt: new Date() }).where(eq(settings.key, 'artikel_pengumuman'));
+    } else {
+      await db.insert(settings).values({ key: 'artikel_pengumuman', value: JSON.stringify(currentAnnouncements) });
+    }
+
+    return Astro.redirect('/admin/settings/pengumuman?success=true');
+  } catch (e: any) {
+    console.error("Save announcement error:", e);
+    errorMessage = e.message;
+  }
+}
+
+// Load announcements
+const existing = await db.select().from(settings).where(eq(settings.key, 'artikel_pengumuman')).then(r => r[0]);
+let announcements = [];
+if (existing && existing.value) {
+  try {
+    announcements = JSON.parse(existing.value);
+  } catch(e) {
+    console.error("Parse error:", e);
+  }
+}
+---
+
+<Layout title="Manajemen Pengumuman | Admin Panel">
+  <Announcement announcements={announcements} errorMessage={errorMessage} successMessage={successMessage} />
+</Layout>

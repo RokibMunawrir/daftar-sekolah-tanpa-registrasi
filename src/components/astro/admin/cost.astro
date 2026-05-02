@@ -1,0 +1,258 @@
+---
+import Panel from "../ui/panel.astro";
+
+// Default dummy data
+const defaultFeeItems = [
+  { id: 1, name: "Formulir Pendaftaran", cost: 150000, category: "Wajib" },
+  { id: 2, name: "Masa Pengenalan Lingkungan (MPLS)", cost: 350000, category: "Wajib" },
+  { id: 3, name: "Seragam & Atribut Sekolah", cost: 1200000, category: "Penunjang" },
+  { id: 4, name: "Uang Gedung / Sarana", cost: 3500000, category: "Wajib" },
+];
+
+const bankAccounts = [
+  { id: 1, bank: "Bank Central Asia (BCA)", number: "8041223451", owner: "SMK Unggul Mandiri" },
+  { id: 2, bank: "Bank Mandiri", number: "1230009876543", owner: "SMK Unggul Mandiri" },
+];
+---
+
+<Panel activeMenu="setting-biaya">
+  <div class="space-y-8 pb-12">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">Pengaturan Biaya & Pembayaran</h2>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+          Kelola rincian nominal pembayaran formulir dan tata cara pembayaran calon siswa.
+        </p>
+      </div>
+      <div>
+        <button id="save-cost-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/20 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Rincian
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Rincian Komponen Biaya -->
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-extrabold text-slate-800 dark:text-white">Komponen Rincian Biaya</h3>
+            <button id="add-fee-item-btn" type="button" class="flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              Tambah Komponen
+            </button>
+          </div>
+
+          <div class="space-y-3" id="fee-items-list">
+            {defaultFeeItems.map((item) => (
+              <div class="flex flex-col md:flex-row gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl relative group items-center">
+                <div class="flex-1 w-full">
+                  <input 
+                    type="text" 
+                    value={item.name} 
+                    class="w-full px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    placeholder="Nama Komponen Biaya"
+                  />
+                </div>
+                <div class="w-full md:w-44 flex items-center gap-2">
+                  <span class="text-slate-400 font-bold text-sm">Rp</span>
+                  <input 
+                    type="number" 
+                    value={item.cost} 
+                    class="w-full px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right fee-cost-input"
+                    placeholder="0"
+                  />
+                </div>
+                <div class="w-full md:w-32">
+                  <select class="w-full px-3 py-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none">
+                    <option selected={item.category === 'Wajib'}>Wajib</option>
+                    <option selected={item.category === 'Penunjang'}>Penunjang</option>
+                    <option selected={item.category === 'Opsional'}>Opsional</option>
+                  </select>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer delete-fee-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <!-- Total Calculation -->
+          <div class="mt-6 p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-500 dark:text-slate-400">Estimasi Total Biaya</span>
+            <span class="text-2xl font-black text-slate-900 dark:text-white" id="fee-total-display">Rp 5.200.000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metode / Rekening Pembayaran -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-extrabold text-slate-800 dark:text-white">Rekening Pembayaran</h3>
+            <button id="add-bank-btn" type="button" class="flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              Tambah
+            </button>
+          </div>
+
+          <div class="space-y-4" id="bank-list">
+            {bankAccounts.map((bank) => (
+              <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl relative group">
+                <button type="button" class="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors cursor-pointer delete-bank-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+                <div class="space-y-2">
+                  <input 
+                    type="text" 
+                    value={bank.bank} 
+                    class="w-full px-3 py-1 text-xs font-extrabold bg-transparent border-0 border-b border-dashed border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 focus:outline-none"
+                    placeholder="Nama Bank / E-Wallet"
+                  />
+                  <input 
+                    type="text" 
+                    value={bank.number} 
+                    class="w-full px-3 py-1 text-base font-black bg-transparent border-0 text-slate-800 dark:text-slate-200 focus:outline-none"
+                    placeholder="Nomor Rekening"
+                  />
+                  <input 
+                    type="text" 
+                    value={bank.owner} 
+                    class="w-full px-3 py-1 text-xs font-semibold bg-transparent border-0 text-slate-400 dark:text-slate-500 focus:outline-none"
+                    placeholder="Atas Nama (A/N)"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Panel>
+
+<script>
+  // Dynamic Total calculation
+  const calculateTotal = () => {
+    let total = 0;
+    document.querySelectorAll('.fee-cost-input').forEach((input) => {
+      const val = parseInt((input as HTMLInputElement).value) || 0;
+      total += val;
+    });
+
+    const totalDisplay = document.getElementById('fee-total-display');
+    if (totalDisplay) {
+      totalDisplay.textContent = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+      }).format(total);
+    }
+  };
+
+  const attachFeeListeners = () => {
+    document.querySelectorAll('.fee-cost-input').forEach(input => {
+      input.addEventListener('input', calculateTotal);
+    });
+
+    document.querySelectorAll('.delete-fee-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        (e.target as HTMLElement).closest('.flex')?.remove();
+        calculateTotal();
+      });
+    });
+  };
+  attachFeeListeners();
+
+  const attachBankListeners = () => {
+    document.querySelectorAll('.delete-bank-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        (e.target as HTMLElement).closest('.group')?.remove();
+      });
+    });
+  };
+  attachBankListeners();
+
+  // Add Fee Item
+  const addFeeBtn = document.getElementById('add-fee-item-btn');
+  const feeList = document.getElementById('fee-items-list');
+
+  addFeeBtn?.addEventListener('click', () => {
+    if (!feeList) return;
+    const row = document.createElement('div');
+    row.className = "flex flex-col md:flex-row gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl relative group items-center";
+    row.innerHTML = `
+      <div class="flex-1 w-full">
+        <input 
+          type="text" 
+          class="w-full px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          placeholder="Nama Komponen Biaya"
+        />
+      </div>
+      <div class="w-full md:w-44 flex items-center gap-2">
+        <span class="text-slate-400 font-bold text-sm">Rp</span>
+        <input 
+          type="number" 
+          class="w-full px-3 py-2 text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right fee-cost-input"
+          placeholder="0"
+          value="0"
+        />
+      </div>
+      <div class="w-full md:w-32">
+        <select class="w-full px-3 py-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none">
+          <option>Wajib</option>
+          <option>Penunjang</option>
+          <option>Opsional</option>
+        </select>
+      </div>
+      <button type="button" class="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer delete-fee-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+      </button>
+    `;
+    feeList.appendChild(row);
+    attachFeeListeners();
+    calculateTotal();
+  });
+
+  // Add Bank
+  const addBankBtn = document.getElementById('add-bank-btn');
+  const bankList = document.getElementById('bank-list');
+
+  addBankBtn?.addEventListener('click', () => {
+    if (!bankList) return;
+    const card = document.createElement('div');
+    card.className = "p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl relative group";
+    card.innerHTML = `
+      <button type="button" class="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors cursor-pointer delete-bank-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+      </button>
+      <div class="space-y-2">
+        <input 
+          type="text" 
+          class="w-full px-3 py-1 text-xs font-extrabold bg-transparent border-0 border-b border-dashed border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 focus:outline-none"
+          placeholder="Nama Bank / E-Wallet"
+        />
+        <input 
+          type="text" 
+          class="w-full px-3 py-1 text-base font-black bg-transparent border-0 text-slate-800 dark:text-slate-200 focus:outline-none"
+          placeholder="Nomor Rekening"
+        />
+        <input 
+          type="text" 
+          class="w-full px-3 py-1 text-xs font-semibold bg-transparent border-0 text-slate-400 dark:text-slate-500 focus:outline-none"
+          placeholder="Atas Nama (A/N)"
+        />
+      </div>
+    `;
+    bankList.appendChild(card);
+    attachBankListeners();
+  });
+
+  // Save changes
+  const saveBtn = document.getElementById('save-cost-btn');
+  saveBtn?.addEventListener('click', () => {
+    alert('Informasi rincian biaya pendaftaran berhasil disimpan!');
+  });
+</script>

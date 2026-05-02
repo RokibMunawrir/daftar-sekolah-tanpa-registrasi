@@ -1,0 +1,336 @@
+---
+import ThemeController from "../../react/theme-controller";
+import ConfirmModal from "./confirm-modal.astro";
+import db from "../../../db";
+import { settings } from "../../../db/schema";
+import { eq } from "drizzle-orm";
+
+const { activeMenu = "dashboard" } = Astro.props;
+const { user } = Astro.locals;
+
+let schoolLogo = "";
+try {
+  const [logoSetting] = await db.select().from(settings).where(eq(settings.key, "school_logo"));
+  schoolLogo = logoSetting?.value || "";
+} catch (e) {}
+
+const menus = [
+// ... (rest of menus)
+  {
+    name: "Dashboard",
+    id: "dashboard",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+    href: "/admin/dashboard",
+  },
+  {
+    name: "List Pendaftar",
+    id: "pendaftar",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    href: "/admin/pendaftar",
+  },
+];
+
+const settingsSubMenu = [
+  { name: "Landing", id: "setting-landing", href: "/admin/settings/landing" },
+  { name: "Tahun Ajaran", id: "setting-tahun-ajaran", href: "/admin/settings/tahun-ajaran" },
+  { name: "Pengumuman", id: "setting-pengumuman", href: "/admin/settings/pengumuman" },
+  { name: "Users", id: "setting-users", href: "/admin/settings/users" },
+];
+---
+
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-indigo-500/30">
+  <!-- Mobile Backdrop -->
+  <div 
+    id="sidebar-backdrop" 
+    class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] hidden md:hidden transition-opacity duration-300 opacity-0"
+  ></div>
+
+  <!-- Sidebar -->
+  <aside 
+    id="admin-sidebar"
+    class="fixed md:sticky top-0 left-0 z-[70] md:z-auto h-screen w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0"
+  >
+    <!-- Minimize Toggle Button (Floating on Border) -->
+    <button 
+      id="sidebar-minimize"
+      class="absolute -right-3.5 top-16 z-50 w-7 h-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full hidden md:flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+    >
+      <svg id="minimize-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+
+    <div class="p-6 flex items-center gap-3">
+      <div class="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg shadow-indigo-500/20 overflow-hidden">
+        {schoolLogo ? (
+          <img src={schoolLogo} alt="Logo" class="w-full h-full object-cover" />
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+        )}
+      </div>
+      <div class="flex-1 min-w-0 sidebar-content">
+        <h1 class="font-bold text-slate-900 dark:text-white text-lg tracking-tight truncate">Admin Panel</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">PPDB Online 2026</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-4 space-y-2 py-4">
+      {menus.map((menu) => (
+        <a
+          href={menu.href}
+          class={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+            activeMenu === menu.id
+              ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+          }`}
+          title={menu.name}
+        >
+          <span class={`flex-shrink-0 ${activeMenu === menu.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"}`} set:html={menu.icon} />
+          <span class="sidebar-content truncate transition-opacity duration-200">{menu.name}</span>
+        </a>
+      ))}
+
+      <!-- Settings Dropdown/Accordion Section -->
+      <div class="pt-2">
+        <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest sidebar-content truncate">
+          Konfigurasi
+        </div>
+        <div class="space-y-1">
+          <div 
+            class={`flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group relative ${
+              activeMenu.startsWith('setting') 
+                ? "text-slate-900 dark:text-white font-semibold" 
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            }`}
+            id="setting-toggle"
+            title="Setting"
+          >
+            <div class="flex items-center gap-3">
+              <span class="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+              <span class="sidebar-content truncate">Setting</span>
+            </div>
+            <svg 
+              id="setting-chevron"
+              xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+              class={`transition-transform duration-300 sidebar-content ${activeMenu.startsWith('setting') ? 'rotate-180' : ''}`}
+            >
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+
+          <div 
+            id="setting-menu" 
+            class={`pl-11 pr-4 space-y-1 overflow-hidden transition-all duration-300 ${activeMenu.startsWith('setting') ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+          >
+            {settingsSubMenu.map((sub) => (
+              <a
+                href={sub.href}
+                class={`block py-2 text-sm rounded-lg transition-all duration-200 ${
+                  activeMenu === sub.id
+                    ? "text-indigo-600 dark:text-indigo-400 font-medium"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+              >
+                {sub.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-sm shadow-inner">
+          AD
+        </div>
+        <div class="flex-1 min-w-0 sidebar-content">
+          <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name || "Administrator"}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email || "admin@ppdb.sch.id"}</p>
+        </div>
+        <button id="logout-btn" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Logout">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Header -->
+    <header class="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
+      <div class="flex items-center gap-4">
+        <button id="mobile-toggle" class="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+        <div class="hidden sm:flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
+          <span class="hover:text-slate-900 dark:hover:text-white cursor-pointer">Admin</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-2 opacity-50"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="text-slate-900 dark:text-white capitalize">{activeMenu.replace('-', ' ')}</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <ThemeController client:only="react" />
+        <div class="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+        <div class="relative">
+          <button id="notif-btn" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Wrapper -->
+    <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div class="max-w-7xl mx-auto">
+        <slot />
+      </div>
+    </div>
+  </main>
+  <ConfirmModal />
+</div>
+
+<script>
+  const toggle = document.getElementById('setting-toggle');
+  const menu = document.getElementById('setting-menu');
+  const chevron = document.getElementById('setting-chevron');
+
+  // Setting toggle logic
+  if (toggle && menu && chevron) {
+    toggle.addEventListener('click', () => {
+      // Don't expand if sidebar is minimized
+      if (document.querySelector('aside')?.classList.contains('w-20')) return;
+
+      const isExpanded = menu.classList.contains('max-h-[500px]');
+      
+      if (isExpanded) {
+        menu.classList.remove('max-h-[500px]', 'opacity-100');
+        menu.classList.add('max-h-0', 'opacity-0');
+        chevron.classList.remove('rotate-180');
+      } else {
+        menu.classList.add('max-h-[500px]', 'opacity-100');
+        menu.classList.remove('max-h-0', 'opacity-0');
+        chevron.classList.add('rotate-180');
+      }
+    });
+  }
+
+  // Sidebar minimize logic
+  const sidebarMinimize = document.getElementById('sidebar-minimize');
+  const aside = document.querySelector('aside');
+  const minimizeIcon = document.getElementById('minimize-icon');
+  const sidebarContents = document.querySelectorAll('.sidebar-content');
+
+  const toggleSidebar = (isMinimized: boolean) => {
+    if (isMinimized) {
+      aside?.classList.remove('w-72');
+      aside?.classList.add('w-20');
+      minimizeIcon?.classList.add('rotate-180');
+      sidebarContents.forEach(el => el.classList.add('hidden'));
+      // Close settings menu if open
+      menu?.classList.remove('max-h-[500px]', 'opacity-100');
+      menu?.classList.add('max-h-0', 'opacity-0');
+      chevron?.classList.remove('rotate-180');
+    } else {
+      aside?.classList.remove('w-20');
+      aside?.classList.add('w-72');
+      minimizeIcon?.classList.remove('rotate-180');
+      sidebarContents.forEach(el => el.classList.remove('hidden'));
+    }
+    localStorage.setItem('sidebar-minimized', isMinimized ? 'true' : 'false');
+  };
+
+  // Initial state
+  const isInitiallyMinimized = localStorage.getItem('sidebar-minimized') === 'true';
+  toggleSidebar(isInitiallyMinimized);
+
+  sidebarMinimize?.addEventListener('click', () => {
+    const isMinimized = aside?.classList.contains('w-20');
+    toggleSidebar(!isMinimized);
+  });
+
+  // Mobile drawer logic
+  const mobileToggle = document.getElementById('mobile-toggle');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const sidebar = document.getElementById('admin-sidebar');
+
+  const toggleMobileDrawer = (isOpen: boolean) => {
+    if (isOpen) {
+      sidebar?.classList.remove('-translate-x-full');
+      sidebar?.classList.add('translate-x-0');
+      backdrop?.classList.remove('hidden');
+      setTimeout(() => backdrop?.classList.add('opacity-100'), 10);
+      document.body.style.overflow = 'hidden';
+    } else {
+      sidebar?.classList.add('-translate-x-full');
+      sidebar?.classList.remove('translate-x-0');
+      backdrop?.classList.remove('opacity-100');
+      setTimeout(() => {
+        backdrop?.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  };
+
+  mobileToggle?.addEventListener('click', () => toggleMobileDrawer(true));
+  backdrop?.addEventListener('click', () => toggleMobileDrawer(false));
+
+  // Close drawer on link click (mobile)
+  const sidebarLinks = sidebar?.querySelectorAll('a');
+  sidebarLinks?.forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth < 768) {
+        toggleMobileDrawer(false);
+      }
+    });
+  });
+
+  // Logout functionality
+  const logoutBtn = document.getElementById('logout-btn');
+  logoutBtn?.addEventListener('click', () => {
+    (window as any).showConfirmModal({
+      title: 'Logout',
+      type: 'logout',
+      onConfirm: async () => {
+        const { authClient } = await import("../../../lib/auth-client");
+        await authClient.signOut({
+          fetchOptions: {
+            onSuccess: () => {
+              window.location.href = "/login";
+            },
+          },
+        });
+      }
+    });
+  });
+
+  // Notification functionality
+  const notifBtn = document.getElementById('notif-btn');
+  notifBtn?.addEventListener('click', () => {
+    alert('Anda memiliki 3 notifikasi baru pendaftaran.');
+  });
+</script>
+
+<style is:global>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+</style>

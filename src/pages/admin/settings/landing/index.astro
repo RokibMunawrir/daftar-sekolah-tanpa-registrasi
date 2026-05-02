@@ -1,0 +1,83 @@
+---
+import Landing from "../../../../components/astro/admin/landing.astro";
+import Layout from "../../../../layouts/Layout.astro";
+import db from "../../../../db";
+import { settings } from "../../../../db/schema";
+import fs from 'node:fs';
+import path from 'node:path';
+
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const fd = await Astro.request.formData();
+    const data: Record<string, string> = {};
+    
+    // Handle File Upload
+    // Handle Brochure Upload
+    const brochureFile = fd.get('school_brochure') as File | null;
+    if (brochureFile && brochureFile.size > 0) {
+      const buffer = Buffer.from(await brochureFile.arrayBuffer());
+      const ext = path.extname(brochureFile.name) || '.pdf';
+      const fileName = `brosur_${Date.now()}${ext}`;
+      
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      const filePath = path.join(uploadDir, fileName);
+      await fs.promises.writeFile(filePath, buffer);
+      
+      data['school_brochure'] = `/uploads/${fileName}`;
+    }
+
+    // Handle Logo Upload
+    const logoFile = fd.get('school_logo') as File | null;
+    if (logoFile && logoFile.size > 0) {
+      const buffer = Buffer.from(await logoFile.arrayBuffer());
+      const ext = path.extname(logoFile.name) || '.png';
+      const fileName = `logo_${Date.now()}${ext}`;
+      
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      const filePath = path.join(uploadDir, fileName);
+      await fs.promises.writeFile(filePath, buffer);
+      
+      data['school_logo'] = `/uploads/${fileName}`;
+    }
+    
+    fd.forEach((val, key) => {
+      if (key !== 'school_brochure' && key !== 'school_logo') {
+        data[key] = String(val);
+      }
+    });
+
+    // Save to database (using onDuplicateKeyUpdate for efficiency)
+    for (const key of Object.keys(data)) {
+      const value = data[key];
+      
+      await db.insert(settings)
+        .values({ key, value, updatedAt: new Date() })
+        .onDuplicateKeyUpdate({ 
+          set: { 
+            value, 
+            updatedAt: new Date() 
+          } 
+        });
+    }
+
+    return Astro.redirect('/admin/settings/landing?success=true');
+  } catch (err: any) {
+    console.error("Landing settings save error:", err);
+    errorMessage = err.message || "Gagal menyimpan perubahan.";
+  }
+}
+---
+
+<Layout title="Pengaturan Landing Page | Admin Panel" description="Kelola tampilan halaman utama website.">
+  <Landing errorMessage={errorMessage} />
+</Layout>

@@ -1,0 +1,199 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import db from "../../db";
+import { settings } from "../../db/schema";
+
+const { id } = Astro.params;
+
+let settingsMap: Record<string, string> = {};
+try {
+  const rows = await db.select().from(settings);
+  for (const row of rows) {
+    settingsMap[row.key] = row.value || '';
+  }
+} catch(e) {
+  console.error('Settings load error:', e);
+}
+
+const schoolName = settingsMap['school_name'] || "SMK Unggul Mandiri";
+
+// 1. Fetch announcements
+let announcements = [];
+if (settingsMap['artikel_pengumuman']) {
+  try {
+    announcements = JSON.parse(settingsMap['artikel_pengumuman']);
+  } catch(e) {
+    console.error("Parse error:", e);
+  }
+}
+
+// 2. Find specific announcement
+const item = announcements.find((a: any) => a.id === id);
+
+// 3. Fallback mock if not found in DB but matching mock ID (backward compatibility)
+const mockAnnouncements: Record<string, any> = {
+  '1': { title: "Hasil Seleksi PPDB Gelombang 1", date: "24 April 2026", category: "Kelulusan", content: "Selamat bagi seluruh pendaftar gelombang pertama yang dinyatakan lulus seleksi administrasi dan kompetensi dasar. Informasi daftar ulang silakan unduh lampiran di bawah.", driveLink: "#", fileUrl: "#" },
+  '2': { title: "Jadwal Pelaksanaan Tes Wawancara Offline", date: "15 April 2026", category: "Info", content: "Tes wawancara tatap muka dijadwalkan secara bertahap di ruang auditorium sekolah. Harap menggunakan seragam formal.", driveLink: "", fileUrl: "" },
+  '3': { title: "Persyaratan Berkas Daftar Ulang", date: "10 April 2026", category: "Peringatan", content: "Bagi yang belum melengkapi SKL (Surat Keterangan Lulus), mohon segera diserahkan sebelum batas waktu.", driveLink: "#", fileUrl: "" }
+};
+
+const displayItem = item || mockAnnouncements[String(id)];
+
+if (!displayItem) {
+  return Astro.redirect('/');
+}
+
+const allAnnouncements = announcements.length > 0 
+  ? announcements 
+  : Object.entries(mockAnnouncements).map(([key, val]: [string, any]) => ({ id: key, ...val }));
+
+const otherAnnouncements = allAnnouncements
+  .filter((a: any) => String(a.id) !== String(id))
+  .slice(0, 5);
+---
+
+<Layout title={`${displayItem.title} | Pengumuman PPDB`}>
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-300">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2">
+          <span class="text-xl font-black bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">
+            📚 {schoolName}
+          </span>
+        </a>
+
+        <!-- Desktop Links -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="/#pengumuman" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Pengumuman</a>
+          <a href="/#alur" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Alur Daftar</a>
+          <a href="/#keunggulan" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Keunggulan</a>
+          <a href="/#kontak" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Kontak</a>
+        </div>
+
+        <!-- CTA -->
+        <div class="flex items-center gap-4">
+          <a href="/register" class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-5 py-2 rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/40 cursor-pointer transform hover:-translate-y-0.5">
+            Daftar Sekarang →
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="min-h-screen bg-slate-50 dark:bg-slate-950/60 pt-24 pb-12 md:pt-32 md:pb-20 px-4">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Main Content -->
+      <div class="lg:col-span-2">
+        <!-- Back Button -->
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 mb-8 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Kembali ke Beranda
+        </a>
+
+        <!-- Article Card -->
+        <article class="bg-white dark:bg-slate-900 p-6 md:p-10 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none space-y-6">
+          
+          <!-- Category & Date -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class={`px-3 py-1 text-xs font-bold rounded-full border ${
+              displayItem.category === 'Kelulusan' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800/30' :
+              displayItem.category === 'Peringatan' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-800/30' :
+              'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-800/30'
+            }`}>
+              {displayItem.category === 'Kelulusan' ? '🎉 Kelulusan' : displayItem.category === 'Peringatan' ? '⚠️ Peringatan' : 'ℹ️ Informasi'}
+            </span>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {displayItem.date}
+            </span>
+          </div>
+
+          <!-- Title -->
+          <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+            {displayItem.title}
+          </h1>
+
+          <!-- Content -->
+          <div class="prose prose-slate dark:prose-invert max-w-none pt-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed text-base whitespace-pre-wrap">
+            {displayItem.content}
+          </div>
+
+          <!-- Attachments -->
+          {(displayItem.driveLink || displayItem.fileUrl) && (
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-6 mt-8 space-y-3">
+              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Lampiran Dokumen:</h4>
+              <div class="flex flex-col sm:flex-row gap-3">
+                {displayItem.driveLink && (
+                  <a 
+                    href={displayItem.driveLink} 
+                    target="_blank" 
+                    class="flex items-center gap-3 bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800/60 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-all flex-1"
+                  >
+                    <span class="text-2xl">🔗</span>
+                    <div>
+                      <p class="text-slate-900 dark:text-white">Tautan Google Drive</p>
+                      <p class="text-xs font-semibold text-slate-400 mt-0.5">Buka berkas di tab baru</p>
+                    </div>
+                  </a>
+                )}
+                {displayItem.fileUrl && (
+                  <a 
+                    href={displayItem.fileUrl} 
+                    download 
+                    class="flex items-center gap-3 bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800/60 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-all flex-1"
+                  >
+                    <span class="text-2xl">📄</span>
+                    <div>
+                      <p class="text-slate-900 dark:text-white">Dokumen Pendukung</p>
+                      <p class="text-xs font-semibold text-slate-400 mt-0.5">Klik untuk mengunduh</p>
+                    </div>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+        </article>
+      </div>
+
+      <!-- Sidebar (Other Announcements) -->
+      <div class="lg:col-span-1">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none sticky top-24">
+          <h3 class="text-lg font-extrabold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600 dark:text-indigo-400"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Pengumuman Lainnya
+          </h3>
+          
+          <div class="space-y-3">
+            {otherAnnouncements.map((ann: any) => (
+              <a href={`/pengumuman/${ann.id}`} class="block p-4 rounded-2xl bg-slate-50/50 hover:bg-indigo-50/50 dark:bg-slate-800/20 dark:hover:bg-slate-800/50 border border-slate-100 dark:border-slate-800/50 hover:border-indigo-100 dark:hover:border-indigo-950 transition-all duration-200 group">
+                <span class={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full border mb-2 ${
+                  ann.category === 'Kelulusan' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800/30' :
+                  ann.category === 'Peringatan' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-800/30' :
+                  'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-800/30'
+                }`}>
+                  {ann.category}
+                </span>
+                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                  {ann.title}
+                </h4>
+                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-2 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {ann.date}
+                </div>
+              </a>
+            ))}
+            
+            {otherAnnouncements.length === 0 && (
+              <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Tidak ada pengumuman lainnya.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</Layout>

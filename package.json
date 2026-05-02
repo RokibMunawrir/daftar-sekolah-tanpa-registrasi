@@ -12,6 +12,22 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^6.1.9"
+    "@astrojs/node": "^10.0.6",
+    "@astrojs/react": "^5.0.4",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "astro": "^6.1.9",
+    "better-auth": "^1.6.9",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "mysql2": "^3.22.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0"
   }
 }

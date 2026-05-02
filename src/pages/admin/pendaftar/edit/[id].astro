@@ -1,0 +1,389 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import Panel from "../../../../components/astro/ui/panel.astro";
+import db from "../../../../db";
+import { 
+  santri, alamat, orangTua, pendaftaran, 
+  pendidikanSebelumnya, bantuanSosial, prestasi, informasiPenunjang 
+} from "../../../../db/schema";
+import { eq } from "drizzle-orm";
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/admin/pendaftar');
+}
+
+let dataSantri: any = null;
+let dataPendaftaran: any = null;
+let dataAlamat: any = null;
+let dataOrangTua: any[] = [];
+let dataPendidikan: any = null;
+
+try {
+  dataSantri = await db.select().from(santri).where(eq(santri.id, id)).then(r => r[0]);
+  if (!dataSantri) {
+    return Astro.redirect('/admin/pendaftar');
+  }
+
+  dataPendaftaran = await db.select().from(pendaftaran).where(eq(pendaftaran.santriId, id)).then(r => r[0]);
+  dataAlamat = await db.select().from(alamat).where(eq(alamat.santriId, id)).then(r => r[0]);
+  dataOrangTua = await db.select().from(orangTua).where(eq(orangTua.santriId, id));
+  dataPendidikan = await db.select().from(pendidikanSebelumnya).where(eq(pendidikanSebelumnya.santriId, id)).then(r => r[0]);
+} catch (e) {
+  console.error(e);
+}
+
+const ayah = dataOrangTua.find(o => o.tipe === 'AYAH') || {};
+const ibu = dataOrangTua.find(o => o.tipe === 'IBU') || {};
+
+const formatDateForInput = (dateStr: any) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return '';
+  }
+};
+
+let errorMsg = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    
+    const namaLengkap = formData.get('namaLengkap') as string;
+    const nisn = formData.get('nisn') as string;
+    const nik = formData.get('nik') as string;
+    const tempatLahir = formData.get('tempatLahir') as string;
+    const tanggalLahir = formData.get('tanggalLahir') as string;
+    const jenisKelamin = formData.get('jenisKelamin') as 'L' | 'P';
+    const hobi = formData.get('hobi') as string;
+    const citaCita = formData.get('citaCita') as string;
+    const anakKe = parseInt(formData.get('anakKe') as string || '1');
+    const beratBadan = parseInt(formData.get('beratBadan') as string || '0');
+    const tinggiBadan = parseInt(formData.get('tinggiBadan') as string || '0');
+    const jumlahSaudaraKandung = parseInt(formData.get('jumlahSaudaraKandung') as string || '0');
+    const jumlahSaudaraTiri = parseInt(formData.get('jumlahSaudaraTiri') as string || '0');
+    const statusKondisiSantri = formData.get('statusKondisiSantri') as string;
+
+    const alamatLengkap = formData.get('alamatLengkap') as string;
+    const nomorHpOrangTua = formData.get('nomorHpOrangTua') as string;
+    const emailOrangTua = formData.get('emailOrangTua') as string;
+
+    const namaSekolah = formData.get('namaSekolah') as string;
+    const npsnSekolahLama = formData.get('npsnSekolahLama') as string;
+    const tahunLulus = formData.get('tahunLulus') as string;
+    const noIjazah = formData.get('noIjazah') as string;
+    const rataRataNilaiUn = formData.get('rataRataNilaiUn') as string;
+
+    const jenjangPendaftaran = formData.get('jenjangPendaftaran') as string;
+    const kategoriPendaftaran = formData.get('kategoriPendaftaran') as string;
+
+    const namaAyah = formData.get('namaAyah') as string;
+    const nikAyah = formData.get('nikAyah') as string;
+    const pekerjaanAyah = formData.get('pekerjaanAyah') as string;
+
+    const namaIbu = formData.get('namaIbu') as string;
+    const nikIbu = formData.get('nikIbu') as string;
+    const pekerjaanIbu = formData.get('pekerjaanIbu') as string;
+
+    // Update database
+    await db.update(santri).set({
+      namaLengkap, nisn, nik, tempatLahir, tanggalLahir: tanggalLahir ? new Date(tanggalLahir) : undefined, jenisKelamin,
+      hobi, citaCita, anakKe, beratBadan, tinggiBadan,
+      jumlahSaudaraKandung, jumlahSaudaraTiri, statusKondisiSantri,
+      updatedAt: new Date()
+    }).where(eq(santri.id, id));
+
+    await db.update(alamat).set({
+      alamatLengkap, nomorHpOrangTua, emailOrangTua,
+      updatedAt: new Date()
+    }).where(eq(alamat.santriId, id));
+
+    await db.update(pendidikanSebelumnya).set({
+      namaSekolah, npsnSekolahLama, tahunLulus, noIjazah, rataRataNilaiUn,
+      updatedAt: new Date()
+    }).where(eq(pendidikanSebelumnya.santriId, id));
+
+    await db.update(pendaftaran).set({
+      jenjangPendaftaran, kategoriPendaftaran,
+      updatedAt: new Date()
+    }).where(eq(pendaftaran.santriId, id));
+
+    if (ayah.id) {
+      await db.update(orangTua).set({ nama: namaAyah, nik: nikAyah, pekerjaanId: pekerjaanAyah, updatedAt: new Date() }).where(eq(orangTua.id, ayah.id));
+    } else {
+      await db.insert(orangTua).values({ santriId: id, tipe: 'AYAH', nama: namaAyah, nik: nikAyah, pekerjaanId: pekerjaanAyah });
+    }
+
+    if (ibu.id) {
+      await db.update(orangTua).set({ nama: namaIbu, nik: nikIbu, pekerjaanId: pekerjaanIbu, updatedAt: new Date() }).where(eq(orangTua.id, ibu.id));
+    } else {
+      await db.insert(orangTua).values({ santriId: id, tipe: 'IBU', nama: namaIbu, nik: nikIbu, pekerjaanId: pekerjaanIbu });
+    }
+
+    return Astro.redirect(`/admin/pendaftar/detail/${id}`);
+  } catch (e: any) {
+    console.error('Update error:', e);
+    errorMsg = e.message;
+  }
+}
+
+const inputClass = "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm font-semibold";
+const labelClass = "text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2";
+const sectionClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm";
+---
+
+<Layout title={`Edit ${dataSantri?.namaLengkap} | Admin PPDB`}>
+  <Panel activeMenu="pendaftar">
+    <div class="py-4">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <a href={`/admin/pendaftar/detail/${id}`} class="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline mb-2">
+            ← Kembali ke Detail
+          </a>
+          <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Edit Data: {dataSantri?.namaLengkap}
+          </h1>
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div class="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 p-4 rounded-2xl font-semibold text-sm mb-6">
+          ⚠️ Terjadi kesalahan: {errorMsg}
+        </div>
+      )}
+
+      <form method="POST" class="space-y-8">
+        
+        <!-- Data Pendaftaran -->
+        <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-lg shadow-indigo-500/30">
+          <h2 class="text-lg font-extrabold flex items-center gap-2 border-b border-white/20 pb-4 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Data Pendaftaran
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-2">Jenjang Pilihan</label>
+              <select name="jenjangPendaftaran" class="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/50 transition-all text-sm font-bold">
+                <option value="SD" selected={dataPendaftaran?.jenjangPendaftaran === 'SD'} class="text-slate-900">SD</option>
+                <option value="SMP" selected={dataPendaftaran?.jenjangPendaftaran === 'SMP'} class="text-slate-900">SMP</option>
+                <option value="SMA" selected={dataPendaftaran?.jenjangPendaftaran === 'SMA'} class="text-slate-900">SMA</option>
+                <option value="SMK" selected={dataPendaftaran?.jenjangPendaftaran === 'SMK'} class="text-slate-900">SMK</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-2">Kategori Jalur</label>
+              <select name="kategoriPendaftaran" class="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/50 transition-all text-sm font-bold">
+                <option value="Reguler" selected={dataPendaftaran?.kategoriPendaftaran === 'Reguler'} class="text-slate-900">Reguler</option>
+                <option value="Prestasi" selected={dataPendaftaran?.kategoriPendaftaran === 'Prestasi'} class="text-slate-900">Prestasi</option>
+                <option value="Afirmasi" selected={dataPendaftaran?.kategoriPendaftaran === 'Afirmasi'} class="text-slate-900">Afirmasi</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Identitas Utama -->
+        <div class={sectionClass}>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Identitas Calon Siswa
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class={labelClass}>Nama Lengkap</label>
+              <input type="text" name="namaLengkap" value={dataSantri?.namaLengkap} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>NISN</label>
+              <input type="text" name="nisn" value={dataSantri?.nisn} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>NIK</label>
+              <input type="text" name="nik" value={dataSantri?.nik} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Tempat Lahir</label>
+              <input type="text" name="tempatLahir" value={dataSantri?.tempatLahir} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Tanggal Lahir</label>
+              <input type="date" name="tanggalLahir" value={formatDateForInput(dataSantri?.tanggalLahir)} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Jenis Kelamin</label>
+              <div class="flex gap-4 items-center h-12">
+                <label class="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  <input type="radio" name="jenisKelamin" value="L" checked={dataSantri?.jenisKelamin === 'L'} class="text-indigo-600 focus:ring-indigo-500" />
+                  Laki-Laki
+                </label>
+                <label class="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  <input type="radio" name="jenisKelamin" value="P" checked={dataSantri?.jenisKelamin === 'P'} class="text-indigo-600 focus:ring-indigo-500" />
+                  Perempuan
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class={labelClass}>Hobi</label>
+              <input type="text" name="hobi" value={dataSantri?.hobi} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Cita-Cita</label>
+              <input type="text" name="citaCita" value={dataSantri?.citaCita} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Anak Ke</label>
+              <input type="number" name="anakKe" value={dataSantri?.anakKe} min="1" class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Tinggi Badan (cm)</label>
+              <input type="number" name="tinggiBadan" value={dataSantri?.tinggiBadan} min="0" class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Berat Badan (kg)</label>
+              <input type="number" name="beratBadan" value={dataSantri?.beratBadan} min="0" class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Jumlah Saudara Kandung</label>
+              <input type="number" name="jumlahSaudaraKandung" value={dataSantri?.jumlahSaudaraKandung} min="0" class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Jumlah Saudara Tiri</label>
+              <input type="number" name="jumlahSaudaraTiri" value={dataSantri?.jumlahSaudaraTiri} min="0" class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Status Kondisi Siswa</label>
+              <input type="text" name="statusKondisiSantri" value={dataSantri?.statusKondisiSantri} placeholder="Sehat / Normal" class={inputClass} />
+            </div>
+          </div>
+        </div>
+
+        <!-- Alamat & Kontak -->
+        <div class={sectionClass}>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Alamat Tinggal & Kontak
+          </h2>
+          
+          <div class="grid grid-cols-1 gap-6 mb-6">
+            <div>
+              <label class={labelClass}>Alamat Lengkap</label>
+              <textarea name="alamatLengkap" rows="3" required class={`${inputClass} resize-none`}>{dataAlamat?.alamatLengkap}</textarea>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <div>
+              <label class={labelClass}>No. HP Orang Tua</label>
+              <input type="text" name="nomorHpOrangTua" value={dataAlamat?.nomorHpOrangTua} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Email</label>
+              <input type="email" name="emailOrangTua" value={dataAlamat?.emailOrangTua} class={inputClass} />
+            </div>
+          </div>
+        </div>
+
+        <!-- Riwayat Pendidikan -->
+        <div class={sectionClass}>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            Riwayat Pendidikan Sebelumnya
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="md:col-span-2">
+              <label class={labelClass}>Nama Sekolah Asal</label>
+              <input type="text" name="namaSekolah" value={dataPendidikan?.namaSekolah} required class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>NPSN Sekolah Lama</label>
+              <input type="text" name="npsnSekolahLama" value={dataPendidikan?.npsnSekolahLama} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Tahun Lulus</label>
+              <input type="text" name="tahunLulus" value={dataPendidikan?.tahunLulus} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>No. Ijazah</label>
+              <input type="text" name="noIjazah" value={dataPendidikan?.noIjazah} class={inputClass} />
+            </div>
+            <div>
+              <label class={labelClass}>Rata-Rata Nilai UN</label>
+              <input type="text" name="rataRataNilaiUn" value={dataPendidikan?.rataRataNilaiUn} class={inputClass} />
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Orang Tua -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          <!-- Ayah -->
+          <div class={sectionClass}>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-6 flex items-center gap-2">
+              <span class="w-6 h-6 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold rounded-full flex items-center justify-center text-xs">A</span>
+              Data Ayah Kandung
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label class={labelClass}>Nama Lengkap</label>
+                <input type="text" name="namaAyah" value={ayah.nama} required class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>NIK</label>
+                <input type="text" name="nikAyah" value={ayah.nik} class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>Pekerjaan</label>
+                <input type="text" name="pekerjaanAyah" value={ayah.pekerjaanId} class={inputClass} />
+              </div>
+            </div>
+          </div>
+
+          <!-- Ibu -->
+          <div class={sectionClass}>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-6 flex items-center gap-2">
+              <span class="w-6 h-6 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold rounded-full flex items-center justify-center text-xs">I</span>
+              Data Ibu Kandung
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label class={labelClass}>Nama Lengkap</label>
+                <input type="text" name="namaIbu" value={ibu.nama} required class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>NIK</label>
+                <input type="text" name="nikIbu" value={ibu.nik} class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>Pekerjaan</label>
+                <input type="text" name="pekerjaanIbu" value={ibu.pekerjaanId} class={inputClass} />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+          <a href={`/admin/pendaftar/detail/${id}`} class="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors">
+            Batal
+          </a>
+          <button type="submit" class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Simpan Perubahan
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </Panel>
+</Layout>

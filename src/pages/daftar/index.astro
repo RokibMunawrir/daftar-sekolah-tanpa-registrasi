@@ -1,0 +1,394 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const error = Astro.url.searchParams.get('error');
+const step = parseInt(Astro.url.searchParams.get('step') || '1');
+
+// Read session cookie to pre-fill values
+let session: Record<string, string> = {};
+try {
+  const raw = Astro.request.headers.get('cookie')
+    ?.split(';').find(c => c.trim().startsWith('ppdb_form='))
+    ?.split('=').slice(1).join('=');
+  if (raw) session = JSON.parse(decodeURIComponent(raw));
+} catch {}
+
+const v = (key: string, def = '') => session[key] || def;
+
+// Fetch provinces server-side to avoid client JS
+let provinces: { code: string; name: string }[] = [];
+try {
+  const res = await fetch('https://wilayah.id/api/provinces.json');
+  const data = await res.json();
+  provinces = data.data || [];
+} catch {}
+
+const inputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all";
+const labelClass = "block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2";
+
+const steps = ['Pendaftaran','Data Siswa','Alamat','Orang Tua','Pendidikan','Prestasi'];
+
+const listPendidikan = ['Tidak Sekolah', 'Putus SD', 'SD Sederajat', 'SMP Sederajat', 'SMA Sederajat', 'D1 / D2 / D3', 'D4 / S1', 'S2', 'S3'];
+const listPekerjaan = ['Tidak Bekerja', 'Ibu Rumah Tangga', 'PNS', 'TNI / POLRI', 'Karyawan Swasta', 'Pedagang / Wiraswasta', 'Petani / Peternak', 'Buruh', 'Nelayan', 'Jasa', 'Lainnya'];
+const listPenghasilan = ['Kurang dari Rp 500.000', 'Rp 500.000 - Rp 1.000.000', 'Rp 1.000.000 - Rp 2.000.000', 'Rp 2.000.000 - Rp 5.000.000', 'Rp 5.000.000 - Rp 10.000.000', 'Lebih dari Rp 10.000.000'];
+---
+
+<Layout title="Form Pendaftaran Siswa | PPDB Online">
+  <main class="py-12 px-4 bg-slate-50 dark:bg-slate-950 min-h-screen">
+    <div class="max-w-4xl mx-auto">
+
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-black text-slate-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          Pendaftaran Siswa Baru
+        </h1>
+        <p class="text-slate-500 dark:text-slate-400 font-medium">Isi seluruh data dengan lengkap dan benar sesuai dokumen kependudukan.</p>
+      </div>
+
+      {error && (
+        <div class="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl text-red-700 dark:text-red-400 text-sm font-medium">
+          ⚠️ {error}
+        </div>
+      )}
+
+      <!-- Step Progress -->
+      <div class="flex items-center gap-1 mb-8 overflow-x-auto pb-2">
+        {steps.map((s, i) => (
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <div class={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${i === step - 1 ? 'bg-indigo-600 text-white' : i < step - 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
+              <span class={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${i === step - 1 ? 'bg-white/20' : ''}`}>{i < step - 1 ? '✓' : i + 1}</span>
+              <span class="hidden sm:inline">{s}</span>
+            </div>
+            {i < steps.length - 1 && <div class={`w-4 h-0.5 ${i < step - 1 ? 'bg-emerald-300 dark:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700'}`}></div>}
+          </div>
+        ))}
+      </div>
+
+      <!-- Form Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 px-8 py-6 relative">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold bg-white/20 px-3 py-1 rounded-full text-white uppercase tracking-wider">Langkah {step} dari {steps.length}</span>
+            <span class="text-xs text-indigo-200">{Math.round((step / steps.length) * 100)}% Selesai</span>
+          </div>
+          <h2 class="text-2xl font-black text-white tracking-tight">{steps[step - 1]}</h2>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+            <div class="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={`width:${(step/steps.length)*100}%`}></div>
+          </div>
+        </div>
+
+        <form method="POST" action="/api/daftar-step" class="p-8 space-y-6">
+          <input type="hidden" name="step" value={step} />
+
+          <!-- STEP 1 -->
+          {step === 1 && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class={labelClass}>Jenjang Pendaftaran *</label>
+                <select name="jenjangPendaftaran" required class={inputClass}>
+                  <option value="">-- Pilih Jenjang --</option>
+                  {['SMP'].map(o => <option selected={v('jenjangPendaftaran')===o}>{o}</option>)}
+                </select>
+              </div>
+              <div>
+                <label class={labelClass}>Kategori Pendaftaran *</label>
+                <select name="kategoriPendaftaran" required class={inputClass}>
+                  <option value="">-- Pilih Kategori --</option>
+                  {['Reguler','Prestasi','Beasiswa','Tahfidz'].map(o => <option selected={v('kategoriPendaftaran')===o}>{o}</option>)}
+                </select>
+              </div>
+              <div>
+                <label class={labelClass}>Status Santri *</label>
+                <select name="statusSantri" required class={inputClass}>
+                  <option value="">-- Pilih Status --</option>
+                  {['Baru','Pindahan'].map(o => <option selected={v('statusSantri')===o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <!-- STEP 2 -->
+          {step === 2 && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="md:col-span-2"><label class={labelClass}>Nama Lengkap *</label><input type="text" name="namaLengkap" required value={v('namaLengkap')} class={inputClass} /></div>
+              <div><label class={labelClass}>NIK *</label><input type="text" name="nik" required maxlength="16" value={v('nik')} class={inputClass} /></div>
+              <div><label class={labelClass}>NISN</label><input type="text" name="nisn" maxlength="10" value={v('nisn')} class={inputClass} /></div>
+              <div><label class={labelClass}>Tempat Lahir *</label><input type="text" name="tempatLahir" required value={v('tempatLahir')} class={inputClass} /></div>
+              <div><label class={labelClass}>Tanggal Lahir *</label><input type="date" name="tanggalLahir" required value={v('tanggalLahir')} class={inputClass} /></div>
+              <div>
+                <label class={labelClass}>Jenis Kelamin *</label>
+                <div class="flex gap-6 mt-2">
+                  <label class="flex items-center gap-2 font-semibold text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input type="radio" name="jenisKelamin" value="L" required class="w-4 h-4 text-indigo-600" /> Laki-Laki
+                  </label>
+                  <label class="flex items-center gap-2 font-semibold text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input type="radio" name="jenisKelamin" value="P" class="w-4 h-4 text-indigo-600" /> Perempuan
+                  </label>
+                </div>
+              </div>
+              <div><label class={labelClass}>Anak Ke *</label><input type="number" name="anakKe" required min="1" class={inputClass} /></div>
+              <div><label class={labelClass}>Hobi</label><input type="text" name="hobi" class={inputClass} /></div>
+              <div><label class={labelClass}>Cita-Cita</label><input type="text" name="citaCita" class={inputClass} /></div>
+              <div><label class={labelClass}>Berat Badan (kg)</label><input type="number" name="beratBadan" class={inputClass} /></div>
+              <div><label class={labelClass}>Tinggi Badan (cm)</label><input type="number" name="tinggiBadan" class={inputClass} /></div>
+              <div><label class={labelClass}>Jml Saudara Kandung</label><input type="number" name="jumlahSaudaraKandung" value="0" class={inputClass} /></div>
+              <div><label class={labelClass}>Jml Saudara Tiri</label><input type="number" name="jumlahSaudaraTiri" value="0" class={inputClass} /></div>
+              <div class="md:col-span-2"><label class={labelClass}>Status Kondisi Siswa</label><input type="text" name="statusKondisiSantri" placeholder="Contoh: Sehat / Berkebutuhan khusus" class={inputClass} /></div>
+            </div>
+          )}
+
+          <!-- STEP 3: ALAMAT (wilayah cascade via minimal JS) -->
+          {step === 3 && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="md:col-span-2">
+                <label class={labelClass}>Alamat Lengkap *</label>
+                <textarea name="alamatLengkap" required rows={3} placeholder="Nama jalan, RT/RW, Dusun..." class={inputClass}></textarea>
+              </div>
+              <div>
+                <label class={labelClass}>Provinsi *</label>
+                <select name="provinsiNama" id="sel-provinsi" required class={inputClass}>
+                  <option value="">-- Pilih Provinsi --</option>
+                  {provinces.map(p => <option value={p.name} data-code={p.code}>{p.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label class={labelClass}>Kabupaten / Kota *</label>
+                <select name="kabupatenNama" id="sel-kabupaten" required disabled class={inputClass}>
+                  <option value="">-- Pilih Kabupaten/Kota --</option>
+                </select>
+              </div>
+              <div>
+                <label class={labelClass}>Kecamatan *</label>
+                <select name="kecamatanNama" id="sel-kecamatan" required disabled class={inputClass}>
+                  <option value="">-- Pilih Kecamatan --</option>
+                </select>
+              </div>
+              <div>
+                <label class={labelClass}>Desa / Kelurahan *</label>
+                <select name="desaNama" id="sel-desa" required disabled class={inputClass}>
+                  <option value="">-- Pilih Desa/Kelurahan --</option>
+                </select>
+              </div>
+              <div><label class={labelClass}>RT</label><input type="text" name="rt" maxlength="5" class={inputClass} /></div>
+              <div><label class={labelClass}>RW</label><input type="text" name="rw" maxlength="5" class={inputClass} /></div>
+              <div><label class={labelClass}>Kode Pos</label><input type="text" name="kodepos" maxlength="10" class={inputClass} /></div>
+              <div>
+                <label class={labelClass}>No. HP Orang Tua *</label>
+                <input type="tel" name="nomorHpOrangTua" required placeholder="08xxxxxxxxxx" class={inputClass} />
+              </div>
+              <div class="md:col-span-2">
+                <label class={labelClass}>Email Orang Tua</label>
+                <input type="email" name="emailOrangTua" class={inputClass} />
+              </div>
+            </div>
+          )}
+
+          <!-- STEP 4: ORANG TUA -->
+          {step === 4 && (
+            <div class="space-y-8">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <span class="w-7 h-7 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                  Data Ayah
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>Nama Ayah *</label><input type="text" name="namaAyah" required value={v('namaAyah')} class={inputClass} /></div>
+                  <div><label class={labelClass}>NIK Ayah</label><input type="text" name="nikAyah" maxlength="16" value={v('nikAyah')} class={inputClass} /></div>
+                  <div><label class={labelClass}>Tempat Lahir</label><input type="text" name="tempatLahirAyah" value={v('tempatLahirAyah')} class={inputClass} /></div>
+                  <div><label class={labelClass}>Tanggal Lahir</label><input type="date" name="tanggalLahirAyah" value={v('tanggalLahirAyah')} class={inputClass} /></div>
+                  <div>
+                    <label class={labelClass}>Pendidikan Terakhir</label>
+                    <select name="pendidikanAyah" class={inputClass}>
+                      <option value="">-- Pilih Pendidikan --</option>
+                      {listPendidikan.map(o => <option selected={v('pendidikanAyah')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Pekerjaan</label>
+                    <select name="pekerjaanAyah" class={inputClass}>
+                      <option value="">-- Pilih Pekerjaan --</option>
+                      {listPekerjaan.map(o => <option selected={v('pekerjaanAyah')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Penghasilan Per Bulan</label>
+                    <select name="penghasilanAyah" class={inputClass}>
+                      <option value="">-- Pilih Penghasilan --</option>
+                      {listPenghasilan.map(o => <option selected={v('penghasilanAyah')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Kewarganegaraan</label>
+                    <select name="kewarganegaraanAyah" class={inputClass}>
+                      <option value="WNI" selected={v('kewarganegaraanAyah', 'WNI')==='WNI'}>WNI</option>
+                      <option value="WNA" selected={v('kewarganegaraanAyah')==='WNA'}>WNA</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <span class="w-7 h-7 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                  Data Ibu
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>Nama Ibu *</label><input type="text" name="namaIbu" required value={v('namaIbu')} class={inputClass} /></div>
+                  <div><label class={labelClass}>NIK Ibu</label><input type="text" name="nikIbu" maxlength="16" value={v('nikIbu')} class={inputClass} /></div>
+                  <div><label class={labelClass}>Tempat Lahir</label><input type="text" name="tempatLahirIbu" value={v('tempatLahirIbu')} class={inputClass} /></div>
+                  <div><label class={labelClass}>Tanggal Lahir</label><input type="date" name="tanggalLahirIbu" value={v('tanggalLahirIbu')} class={inputClass} /></div>
+                  <div>
+                    <label class={labelClass}>Pendidikan Terakhir</label>
+                    <select name="pendidikanIbu" class={inputClass}>
+                      <option value="">-- Pilih Pendidikan --</option>
+                      {listPendidikan.map(o => <option selected={v('pendidikanIbu')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Pekerjaan</label>
+                    <select name="pekerjaanIbu" class={inputClass}>
+                      <option value="">-- Pilih Pekerjaan --</option>
+                      {listPekerjaan.map(o => <option selected={v('pekerjaanIbu')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Penghasilan Per Bulan</label>
+                    <select name="penghasilanIbu" class={inputClass}>
+                      <option value="">-- Pilih Penghasilan --</option>
+                      {listPenghasilan.map(o => <option selected={v('penghasilanIbu')===o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label class={labelClass}>Kewarganegaraan</label>
+                    <select name="kewarganegaraanIbu" class={inputClass}>
+                      <option value="WNI" selected={v('kewarganegaraanIbu', 'WNI')==='WNI'}>WNI</option>
+                      <option value="WNA" selected={v('kewarganegaraanIbu')==='WNA'}>WNA</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <span class="w-7 h-7 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                  Data Wali (Opsional)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>Nama Wali</label><input type="text" name="namaWali" class={inputClass} /></div>
+                  <div><label class={labelClass}>Hubungan Wali</label><input type="text" name="hubunganWali" placeholder="Paman / Kakak / dll" class={inputClass} /></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <!-- STEP 5: PENDIDIKAN -->
+          {step === 5 && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="md:col-span-2"><label class={labelClass}>Nama Sekolah Asal *</label><input type="text" name="namaSekolah" required class={inputClass} /></div>
+              <div><label class={labelClass}>NPSN Sekolah Asal</label><input type="text" name="npsnSekolahLama" maxlength="8" class={inputClass} /></div>
+              <div><label class={labelClass}>NSM / NSS</label><input type="text" name="nsmNss" class={inputClass} /></div>
+              <div><label class={labelClass}>Dari Kelas</label><input type="text" name="dariKelas" class={inputClass} /></div>
+              <div><label class={labelClass}>Tahun Lulus</label><input type="text" name="tahunLulus" maxlength="4" class={inputClass} /></div>
+              <div><label class={labelClass}>No. Ijazah</label><input type="text" name="noIjazah" class={inputClass} /></div>
+              <div><label class={labelClass}>Rata-Rata Nilai UN</label><input type="text" name="rataRataNilaiUn" class={inputClass} /></div>
+              <div><label class={labelClass}>No. SKHUN</label><input type="text" name="noSkhun" class={inputClass} /></div>
+              <div><label class={labelClass}>No. Peserta Ujian</label><input type="text" name="noPesertaUjian" class={inputClass} /></div>
+            </div>
+          )}
+
+          <!-- STEP 6: PRESTASI & PENUNJANG -->
+          {step === 6 && (
+            <div class="space-y-8">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white mb-4">Bantuan Sosial (Jika Ada)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>No. KKS / KPS</label><input type="text" name="nomorKksKps" class={inputClass} /></div>
+                  <div><label class={labelClass}>No. PKH</label><input type="text" name="nomorPkh" class={inputClass} /></div>
+                  <div><label class={labelClass}>No. KIP</label><input type="text" name="nomorKip" class={inputClass} /></div>
+                  <div><label class={labelClass}>No. BPJS</label><input type="text" name="nomorBpjs" class={inputClass} /></div>
+                </div>
+              </div>
+              <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h3 class="font-bold text-slate-900 dark:text-white mb-4">Prestasi (Jika Ada)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>Cabang Lomba</label><input type="text" name="cabangLomba" placeholder="Matematika / Pencak Silat" class={inputClass} /></div>
+                  <div><label class={labelClass}>Tingkat</label><input type="text" name="tingkatId" placeholder="Kabupaten / Provinsi / Nasional" class={inputClass} /></div>
+                  <div><label class={labelClass}>Peringkat / Juara</label><input type="text" name="peringkatId" placeholder="Juara 1 / Harapan 2" class={inputClass} /></div>
+                  <div><label class={labelClass}>Tahun Lomba</label><input type="text" name="tahunLomba" maxlength="4" class={inputClass} /></div>
+                </div>
+              </div>
+              <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h3 class="font-bold text-slate-900 dark:text-white mb-4">Informasi Penunjang</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class={labelClass}>Organisasi Masyarakat</label><input type="text" name="organisasiMasyarakatId" placeholder="NU / Muhammadiyah" class={inputClass} /></div>
+                  <div><label class={labelClass}>Program Beasiswa</label><input type="text" name="programBeasiswaId" placeholder="KIP-K / Tahfidz" class={inputClass} /></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between items-center pt-8 border-t border-slate-100 dark:border-slate-800">
+            {step > 1
+              ? <a href={`/daftar?step=${step - 1}`} class="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-6 rounded-xl transition-colors">
+                  ← Kembali
+                </a>
+              : <div></div>
+            }
+            <button type="submit" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/20 transition-colors">
+              {step === steps.length ? 'Selesai & Kirim ✓' : 'Lanjut →'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<!-- Minimal JS hanya untuk wilayah cascade (tidak bisa dihindari karena perlu fetch dinamis) -->
+{step === 3 && (
+  <script>
+    async function loadOptions(url: string, sel: HTMLSelectElement, nameKey = 'name', valKey = 'name') {
+      sel.disabled = true;
+      sel.innerHTML = '<option value="">Memuat...</option>';
+      try {
+        const res = await fetch(url);
+        const { data } = await res.json();
+        sel.innerHTML = '<option value="">-- Pilih --</option>';
+        (data || []).forEach((item: any) => {
+          const opt = document.createElement('option');
+          opt.value = item[valKey];
+          opt.dataset.code = item.code;
+          opt.textContent = item[nameKey];
+          sel.appendChild(opt);
+        });
+        sel.disabled = false;
+      } catch { sel.innerHTML = '<option value="">Gagal memuat</option>'; }
+    }
+
+    const selProv = document.getElementById('sel-provinsi') as HTMLSelectElement;
+    const selKab = document.getElementById('sel-kabupaten') as HTMLSelectElement;
+    const selKec = document.getElementById('sel-kecamatan') as HTMLSelectElement;
+    const selDesa = document.getElementById('sel-desa') as HTMLSelectElement;
+
+    selProv?.addEventListener('change', () => {
+      const code = selProv.selectedOptions[0]?.dataset.code || '';
+      selKab.innerHTML = '<option value="">-- Pilih Kabupaten/Kota --</option>';
+      selKec.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+      selDesa.innerHTML = '<option value="">-- Pilih Desa/Kelurahan --</option>';
+      selKab.disabled = true; selKec.disabled = true; selDesa.disabled = true;
+      if (code) loadOptions(`/api/wilayah/regencies/${code}.json`, selKab);
+    });
+    selKab?.addEventListener('change', () => {
+      const code = selKab.selectedOptions[0]?.dataset.code || '';
+      selKec.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+      selDesa.innerHTML = '<option value="">-- Pilih Desa/Kelurahan --</option>';
+      selKec.disabled = true; selDesa.disabled = true;
+      if (code) loadOptions(`/api/wilayah/districts/${code}.json`, selKec);
+    });
+    selKec?.addEventListener('change', () => {
+      const code = selKec.selectedOptions[0]?.dataset.code || '';
+      selDesa.innerHTML = '<option value="">-- Pilih Desa/Kelurahan --</option>';
+      selDesa.disabled = true;
+      if (code) loadOptions(`/api/wilayah/villages/${code}.json`, selDesa);
+    });
+  </script>
+)}

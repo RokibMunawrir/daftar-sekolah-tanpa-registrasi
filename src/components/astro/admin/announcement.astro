@@ -1,0 +1,220 @@
+---
+import Panel from "../ui/panel.astro";
+import Alert from "../../../components/react/alert";
+
+const { announcements = [], errorMessage = "", successMessage = false } = Astro.props;
+---
+
+<Panel activeMenu="setting-pengumuman">
+  <div class="space-y-8 pb-12">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">Manajemen Pengumuman</h2>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+          Publikasikan informasi penting yang akan dibaca oleh pendaftar pada dashboard siswa.
+        </p>
+      </div>
+      <div>
+        <button id="toggle-form-btn" class="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 cursor-pointer transform hover:-translate-y-0.5 duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Tulis Pengumuman
+        </button>
+      </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    {successMessage && <Alert client:load type="success" message="Pengumuman berhasil diproses!" />}
+    {errorMessage && <Alert client:load type="error" message={errorMessage} />}
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Create / Edit Form -->
+      <div id="announce-form-wrapper" class="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none h-fit hidden lg:block transition-all duration-300">
+        <h3 class="text-lg font-extrabold text-slate-800 dark:text-white mb-4">Tulis Pengumuman Baru</h3>
+        
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+          <input type="hidden" name="action" value="create" />
+          
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Judul Pengumuman</label>
+            <input 
+              type="text" 
+              name="title"
+              class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              placeholder="Contoh: Hasil Tes PPDB Gelombang 1"
+              required
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kategori</label>
+            <select name="category" class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+              <option value="Info">ℹ️ Info Umum</option>
+              <option value="Kelulusan">🎉 Kelulusan / Hasil</option>
+              <option value="Peringatan">⚠️ Peringatan Penting</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Isi Pengumuman (Artikel)</label>
+            <textarea 
+              name="content"
+              rows="6"
+              class="w-full px-4 py-3 text-sm font-semibold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 leading-relaxed transition-all"
+              placeholder="Tuliskan artikel atau rincian pesan di sini..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tautan Google Drive (Opsi)</label>
+            <input 
+              type="url" 
+              name="driveLink"
+              class="w-full px-4 py-3 text-sm font-semibold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              placeholder="https://drive.google.com/..."
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Unggah Berkas/Dokumen</label>
+            <input 
+              type="file" 
+              name="file_upload"
+              accept=".pdf,.png,.jpg,.jpeg"
+              class="w-full px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-indigo-50 dark:file:bg-slate-800 file:text-indigo-600 dark:file:text-indigo-400 hover:file:bg-indigo-100 transition-all focus:outline-none cursor-pointer"
+            />
+          </div>
+
+          <div class="py-2">
+            <label class="relative inline-flex items-center cursor-pointer group">
+              <input type="checkbox" name="isPinned" class="sr-only peer" />
+              <div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:bg-slate-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-slate-700 peer-checked:bg-gradient-to-r peer-checked:from-indigo-600 peer-checked:to-violet-600"></div>
+              <span class="ml-3 text-xs font-bold text-slate-400 dark:text-slate-500 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors">
+                Sematkan Pengumuman (Pin)
+              </span>
+            </label>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold text-sm py-3 rounded-2xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer transform hover:-translate-y-0.5">
+              Simpan & Terbitkan
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Announcements List -->
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none">
+          <h3 class="text-lg font-extrabold text-slate-800 dark:text-white mb-6">Arsip Pengumuman</h3>
+          
+          <div class="flex flex-col gap-4">
+            {announcements.length === 0 ? (
+              <div class="py-16 text-center">
+                <div class="mx-auto w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-400 dark:text-slate-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <p class="text-sm font-bold text-slate-400 dark:text-slate-500">Belum ada pengumuman</p>
+                <p class="text-xs text-slate-400 dark:text-slate-600 mt-1">Buat pengumuman baru menggunakan form di samping.</p>
+              </div>
+            ) : (
+              announcements.map((item: any) => (
+              <div class="p-5 bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800/40 rounded-3xl flex items-start gap-4 justify-between group hover:border-indigo-100 dark:hover:border-indigo-950/60 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all duration-300">
+                <div class="flex items-start gap-4 flex-1">
+                  <div class={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border ${
+                    item.category === 'Kelulusan' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800/30' :
+                    item.category === 'Peringatan' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-800/30' :
+                    'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-800/30'
+                  }`}>
+                    {item.category === 'Kelulusan' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    ) : item.category === 'Peringatan' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    )}
+                  </div>
+
+                  <div class="space-y-1 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <a href={`/pengumuman/${item.id}`} class="text-base font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 transition-colors hover:underline">
+                        {item.title}
+                      </a>
+                      
+                      {item.isPinned && (
+                        <span class="inline-flex items-center gap-1 text-[10px] font-extrabold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+                          Pinned
+                        </span>
+                      )}
+                    </div>
+
+                    <div class="flex items-center gap-3 flex-wrap pt-1">
+                      <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {item.date}
+                      </span>
+                      <span class="text-xs text-slate-200 dark:text-slate-800">|</span>
+                      <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {item.views || 0} Pembaca
+                      </span>
+
+                      <div class="flex gap-1.5 ml-2">
+                        {item.driveLink && (
+                          <a href={item.driveLink} target="_blank" class="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 transition-colors">
+                            🔗 Drive Link
+                          </a>
+                        )}
+                        {item.fileUrl && (
+                          <a href={item.fileUrl} download class="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 transition-colors">
+                            📄 Dokumen
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <form method="POST">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="button" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all delete-ann-btn cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  </button>
+                </form>
+              </div>
+            ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Panel>
+
+<script>
+  const toggleBtn = document.getElementById('toggle-form-btn');
+  const formWrapper = document.getElementById('announce-form-wrapper');
+
+  toggleBtn?.addEventListener('click', () => {
+    formWrapper?.classList.toggle('hidden');
+  });
+
+  document.querySelectorAll('.delete-ann-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const form = (e.currentTarget as HTMLElement).closest('form');
+      (window as any).showConfirmModal({
+        title: 'Hapus Pengumuman',
+        type: 'delete',
+        message: 'Apakah Anda yakin ingin menghapus pengumuman ini?',
+        onConfirm: () => {
+          form?.submit();
+        }
+      });
+    });
+  });
+</script>

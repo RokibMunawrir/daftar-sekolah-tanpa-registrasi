@@ -1,0 +1,397 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import Panel from "../../../../components/astro/ui/panel.astro";
+import db from "../../../../db";
+import { 
+  santri, alamat, orangTua, pendaftaran, 
+  pendidikanSebelumnya, bantuanSosial, prestasi, informasiPenunjang,
+  settings
+} from "../../../../db/schema";
+import { eq } from "drizzle-orm";
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/admin/pendaftar');
+}
+
+let dataSantri: any = null;
+let dataPendaftaran: any = null;
+let dataAlamat: any = null;
+let dataOrangTua: any[] = [];
+let dataPendidikan: any = null;
+let dataBansos: any = null;
+let dataPrestasi: any[] = [];
+let dataPenunjang: any = null;
+
+try {
+  dataSantri = await db.select().from(santri).where(eq(santri.id, id)).then(r => r[0]);
+  if (!dataSantri) {
+    return Astro.redirect('/admin/pendaftar');
+  }
+
+  dataPendaftaran = await db.select().from(pendaftaran).where(eq(pendaftaran.santriId, id)).then(r => r[0]);
+  dataAlamat = await db.select().from(alamat).where(eq(alamat.santriId, id)).then(r => r[0]);
+  dataOrangTua = await db.select().from(orangTua).where(eq(orangTua.santriId, id));
+  dataPendidikan = await db.select().from(pendidikanSebelumnya).where(eq(pendidikanSebelumnya.santriId, id)).then(r => r[0]);
+  dataBansos = await db.select().from(bantuanSosial).where(eq(bantuanSosial.santriId, id)).then(r => r[0]);
+  dataPrestasi = await db.select().from(prestasi).where(eq(prestasi.santriId, id));
+  dataPenunjang = await db.select().from(informasiPenunjang).where(eq(informasiPenunjang.santriId, id)).then(r => r[0]);
+} catch (e) {
+  console.error(e);
+}
+
+let settingsMap: Record<string, string> = {};
+try {
+  const rows = await db.select().from(settings);
+  for (const row of rows) {
+    settingsMap[row.key] = row.value || '';
+  }
+} catch(e) {
+  console.error('Settings load error:', e);
+}
+
+const school = {
+  name: settingsMap['school_name'] || "SMK Unggul Mandiri",
+  address: settingsMap['school_address'] || "Jl. Pendidikan No. 45, Jakarta Pusat",
+  phone: settingsMap['school_phone'] || "(021) 1234567",
+  email: settingsMap['school_email'] || "info@smkunggul.sch.id",
+};
+
+const ayah = dataOrangTua.find(o => o.tipe === 'AYAH') || {};
+const ibu = dataOrangTua.find(o => o.tipe === 'IBU') || {};
+const wali = dataOrangTua.find(o => o.tipe === 'WALI') || {};
+
+const formatDate = (dateStr: any) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return String(dateStr);
+  }
+};
+
+const labelClass = "text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1";
+const valClass = "text-base font-semibold text-slate-800 dark:text-slate-200";
+const cardClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all";
+---
+
+<Layout title={`Detail ${dataSantri?.namaLengkap} | Admin PPDB`}>
+  
+  <!-- BUKTI PENDAFTARAN (PRINT ONLY) -->
+  <div class="hidden print:block bg-white text-slate-900 p-8 min-h-screen">
+    <!-- Kop Sekolah -->
+    <div class="flex items-center gap-6 border-b-4 border-double border-slate-900 pb-4 mb-8">
+      <div class="text-center flex-1">
+        <h1 class="text-2xl font-black uppercase tracking-wide">{school.name}</h1>
+        <p class="text-sm font-medium mt-1">{school.address}</p>
+        <p class="text-xs text-slate-600 mt-0.5">Telp: {school.phone} | Email: {school.email}</p>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="text-center mb-10">
+      <h2 class="text-xl font-extrabold underline uppercase tracking-widest text-slate-950">
+        BUKTI PENDAFTARAN PPDB
+      </h2>
+      <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">Tahun Ajaran 2026/2027</p>
+    </div>
+
+    <!-- Data Grid -->
+    <div class="grid grid-cols-3 gap-y-5 text-sm border border-slate-200 rounded-2xl p-6 mb-8 bg-slate-50/50">
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">No. Pendaftaran</div>
+      <div class="col-span-2 font-bold text-slate-900">: {dataPendaftaran?.id || id}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Tanggal Daftar</div>
+      <div class="col-span-2 font-semibold text-slate-800">: {formatDate(dataPendaftaran?.createdAt)}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Jenjang / Jalur</div>
+      <div class="col-span-2 font-bold text-slate-800">: {dataPendaftaran?.jenjangPendaftaran} / {dataPendaftaran?.kategoriPendaftaran}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Nama Lengkap</div>
+      <div class="col-span-2 font-black text-indigo-900 text-base">: {dataSantri.namaLengkap}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">NISN / NIK</div>
+      <div class="col-span-2 font-semibold text-slate-800">: {dataSantri.nisn || '—'} / {dataSantri.nik || '—'}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Tempat, Tgl Lahir</div>
+      <div class="col-span-2 font-semibold text-slate-800">: {dataSantri.tempatLahir}, {formatDate(dataSantri.tanggalLahir)}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Jenis Kelamin</div>
+      <div class="col-span-2 font-semibold text-slate-800">: {dataSantri.jenisKelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}</div>
+
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Asal Sekolah</div>
+      <div class="col-span-2 font-semibold text-slate-800">: {dataPendidikan?.namaSekolah || '—'}</div>
+    </div>
+
+    <p class="text-xs text-slate-600 mb-16 leading-relaxed italic text-center">
+      * Dokumen ini merupakan bukti resmi pendaftaran online. Harap dibawa saat melakukan verifikasi berkas fisik.
+    </p>
+
+    <!-- Footer / Tanda Tangan -->
+    <div class="flex justify-end text-sm">
+      <div class="text-center w-64">
+        <p class="text-xs text-slate-500 mb-1">{settingsMap['school_address']?.split(',')[0] || 'Luwuk'}, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <p class="font-bold text-slate-800 mb-24">Mengetahui,<br/>Kepala Sekolah</p>
+        <div class="border-b-2 border-slate-900 font-extrabold uppercase pb-1 text-slate-950">
+          ( ................................................ )
+        </div>
+        <p class="text-xs text-slate-500 mt-1">NIP. ........................................</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN UI (HIDDEN ON PRINT) -->
+  <div class="print:hidden">
+    <Panel activeMenu="pendaftar">
+    <div class="py-4">
+      
+      <!-- Top Actions / Header -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <a href="/admin/pendaftar" class="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline mb-2">
+            ← Kembali ke Daftar Calon Siswa
+          </a>
+          <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            {dataSantri.namaLengkap}
+            <span class={`text-xs px-2.5 py-1 rounded-full font-bold tracking-wide uppercase ${dataPendaftaran?.statusSantri === 'Baru' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+              {dataPendaftaran?.statusSantri || '—'}
+            </span>
+          </h1>
+        </div>
+        
+        <div class="flex gap-3">
+          <a href={`/admin/pendaftar/edit/${id}`} class="flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-bold text-sm px-5 py-3 rounded-xl transition-colors shadow-lg shadow-indigo-600/20 dark:shadow-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit Data
+          </a>
+          <button onclick="window.print()" class="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-colors shadow-lg shadow-slate-900/10 dark:shadow-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/><rect width="12" height="8" x="6" y="14" rx="1"/></svg>
+            Cetak Dokumen
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- COLUMN 1: IDENTITAS & DAFTAR -->
+        <div class="lg:col-span-2 space-y-8">
+          
+          <!-- Identitas Utama -->
+          <div class={cardClass}>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Identitas Calon Siswa
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <span class={labelClass}>Nama Lengkap</span>
+                <span class={valClass}>{dataSantri.namaLengkap}</span>
+              </div>
+              <div>
+                <span class={labelClass}>NISN / NIK</span>
+                <span class={valClass}>{dataSantri.nisn || '—'} / {dataSantri.nik || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Tempat, Tanggal Lahir</span>
+                <span class={valClass}>{dataSantri.tempatLahir}, {formatDate(dataSantri.tanggalLahir)}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Jenis Kelamin</span>
+                <span class={valClass}>{dataSantri.jenisKelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Anak Ke</span>
+                <span class={valClass}>{dataSantri.anakKe} <span class="text-xs text-slate-400">dari {dataSantri.jumlahSaudaraKandung + dataSantri.jumlahSaudaraTiri + 1} bersaudara</span></span>
+              </div>
+              <div>
+                <span class={labelClass}>Status Kondisi Siswa</span>
+                <span class={valClass}>{dataSantri.statusKondisiSantri || 'Sehat / Normal'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Tinggi / Berat Badan</span>
+                <span class={valClass}>{dataSantri.tinggiBadan ? `${dataSantri.tinggiBadan} cm` : '—'} / {dataSantri.beratBadan ? `${dataSantri.beratBadan} kg` : '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Hobi / Cita-Cita</span>
+                <span class={valClass}>{dataSantri.hobi || '—'} / {dataSantri.citaCita || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alamat & Kontak -->
+          <div class={cardClass}>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Alamat Tinggal & Kontak
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div class="md:col-span-2">
+                <span class={labelClass}>Alamat Lengkap</span>
+                <span class={valClass}>{dataAlamat?.alamatLengkap || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Provinsi</span>
+                <span class={valClass}>{dataAlamat?.provinsiId || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Kabupaten / Kota</span>
+                <span class={valClass}>{dataAlamat?.kabupatenId || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Kecamatan</span>
+                <span class={valClass}>{dataAlamat?.kecamatanId || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Desa / Kelurahan</span>
+                <span class={valClass}>{dataAlamat?.desaKelurahanId || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>RT / RW / Kode Pos</span>
+                <span class={valClass}>RT {dataAlamat?.rt || '—'} / RW {dataAlamat?.rw || '—'} / {dataAlamat?.kodepos || '—'}</span>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-6">
+              <div>
+                <span class={labelClass}>No. HP Orang Tua</span>
+                <span class="text-base font-bold text-indigo-600 dark:text-indigo-400">{dataAlamat?.nomorHpOrangTua || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Email</span>
+                <span class={valClass}>{dataAlamat?.emailOrangTua || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Riwayat Pendidikan -->
+          <div class={cardClass}>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              Riwayat Pendidikan Sebelumnya
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="md:col-span-2">
+                <span class={labelClass}>Nama Sekolah Asal</span>
+                <span class={valClass}>{dataPendidikan?.namaSekolah || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>NPSN / NSM</span>
+                <span class={valClass}>{dataPendidikan?.npsnSekolahLama || '—'} / {dataPendidikan?.nsmNss || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Tahun Lulus</span>
+                <span class={valClass}>{dataPendidikan?.tahunLulus || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>No. Ijazah</span>
+                <span class={valClass}>{dataPendidikan?.noIjazah || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Rata-Rata Nilai UN</span>
+                <span class={valClass}>{dataPendidikan?.rataRataNilaiUn || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COLUMN 2: ORANG TUA & LAINNYA -->
+        <div class="space-y-8">
+          
+          <!-- Data Pendaftaran PPDB -->
+          <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-lg shadow-indigo-500/30">
+            <h2 class="text-lg font-extrabold flex items-center gap-2 border-b border-white/20 pb-4 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              Data Pendaftaran
+            </h2>
+            <div class="space-y-4">
+              <div>
+                <span class="text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-1">Jenjang Pilihan</span>
+                <span class="text-xl font-black">{dataPendaftaran?.jenjangPendaftaran || '—'}</span>
+              </div>
+              <div>
+                <span class="text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-1">Kategori Jalur</span>
+                <span class="text-base font-bold bg-white/20 px-3 py-1 rounded-full inline-block mt-1">{dataPendaftaran?.kategoriPendaftaran || '—'}</span>
+              </div>
+              <div>
+                <span class="text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-1">Tanggal Daftar</span>
+                <span class="text-sm font-semibold">{formatDate(dataPendaftaran?.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Ayah -->
+          <div class={cardClass}>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
+              <span class="w-6 h-6 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold rounded-full flex items-center justify-center text-xs">A</span>
+              Data Ayah Kandung
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <span class={labelClass}>Nama Lengkap</span>
+                <span class={valClass}>{ayah.nama || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>NIK</span>
+                <span class={valClass}>{ayah.nik || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Pekerjaan</span>
+                <span class={valClass}>{ayah.pekerjaanId || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Ibu -->
+          <div class={cardClass}>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
+              <span class="w-6 h-6 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold rounded-full flex items-center justify-center text-xs">I</span>
+              Data Ibu Kandung
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <span class={labelClass}>Nama Lengkap</span>
+                <span class={valClass}>{ibu.nama || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>NIK</span>
+                <span class={valClass}>{ibu.nik || '—'}</span>
+              </div>
+              <div>
+                <span class={labelClass}>Pekerjaan</span>
+                <span class={valClass}>{ibu.pekerjaanId || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Informasi Penunjang / Bansos -->
+          {(dataBansos?.nomorKksKps || dataBansos?.nomorKip || dataPrestasi.length > 0) && (
+            <div class={cardClass}>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">Lain-Lain</h2>
+              <div class="space-y-3 text-sm">
+                {dataBansos?.nomorKksKps && <div><span class="text-slate-400 font-medium">KKS/KPS:</span> <span class="font-bold text-slate-800 dark:text-slate-200">{dataBansos.nomorKksKps}</span></div>}
+                {dataBansos?.nomorKip && <div><span class="text-slate-400 font-medium">KIP:</span> <span class="font-bold text-slate-800 dark:text-slate-200">{dataBansos.nomorKip}</span></div>}
+                {dataPrestasi.length > 0 && (
+                  <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-400 font-bold block mb-1">Prestasi:</span>
+                    <ul class="list-disc pl-4 text-slate-800 dark:text-slate-200 font-medium">
+                      {dataPrestasi.map((p: any) => <li>{p.cabangLomba} ({p.tingkatId})</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+      </div>
+    </div>
+    </Panel>
+  </div>
+</Layout>

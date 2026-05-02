@@ -1,0 +1,58 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const { searchParams } = Astro.url;
+const nama = searchParams.get('nama') || '';
+const jenjang = searchParams.get('jenjang') || '';
+---
+
+<Layout title="Pendaftaran Berhasil | PPDB Online">
+  <main class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-16">
+    <div class="max-w-xl w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-center">
+      
+      <div class="bg-gradient-to-r from-emerald-500 to-teal-600 p-10">
+        <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h1 class="text-3xl font-black text-white tracking-tight">Pendaftaran Berhasil!</h1>
+        <p class="text-emerald-100 mt-2 font-medium">Data Anda telah tersimpan ke sistem kami.</p>
+      </div>
+
+      <div class="p-8">
+        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-8 text-left border border-slate-100 dark:border-slate-800">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Ringkasan Pendaftaran</p>
+          <div class="space-y-3">
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-500 dark:text-slate-400">Nama Siswa</span>
+              <span class="font-bold text-slate-900 dark:text-white">{nama || '—'}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-500 dark:text-slate-400">Jenjang</span>
+              <span class="font-bold text-slate-900 dark:text-white">{jenjang || '—'}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-500 dark:text-slate-400">Status</span>
+              <span class="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-xs px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Tersimpan
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+          Terima kasih telah mendaftar. Tim panitia PPDB akan segera memverifikasi data Anda. 
+          Pantau pengumuman melalui website resmi kami.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="/" class="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            Kembali ke Beranda
+          </a>
+          <a href="/daftar" class="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/20">
+            Daftarkan Siswa Lain
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>

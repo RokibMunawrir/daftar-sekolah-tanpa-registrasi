@@ -1,0 +1,470 @@
+---
+import Panel from "../../../components/astro/ui/panel.astro";
+import db from "../../../db";
+import { 
+  santri, alamat, orangTua, pendaftaran, 
+  pendidikanSebelumnya, bantuanSosial, prestasi, informasiPenunjang,
+  pendidikan, pekerjaan, penghasilan
+} from "../../../db/schema";
+
+// Fetch Master Data for Dropdowns
+const listPendidikanRaw = await db.select().from(pendidikan);
+const listPekerjaanRaw = await db.select().from(pekerjaan);
+const listPenghasilanRaw = await db.select().from(penghasilan);
+
+const defaultPendidikan = ['Tidak Sekolah', 'Putus SD', 'SD Sederajat', 'SMP Sederajat', 'SMA Sederajat', 'D1 / D2 / D3', 'D4 / S1', 'S2', 'S3'];
+const defaultPekerjaan = ['Tidak Bekerja', 'Ibu Rumah Tangga', 'PNS', 'TNI / POLRI', 'Karyawan Swasta', 'Pedagang / Wiraswasta', 'Petani / Peternak', 'Buruh', 'Nelayan', 'Jasa', 'Lainnya'];
+const defaultPenghasilan = ['Kurang dari Rp 500.000', 'Rp 500.000 - Rp 1.000.000', 'Rp 1.000.000 - Rp 2.000.000', 'Rp 2.000.000 - Rp 5.000.000', 'Rp 5.000.000 - Rp 10.000.000', 'Lebih dari Rp 10.000.000'];
+
+const listPendidikan = [...new Set([...defaultPendidikan, ...listPendidikanRaw.map(p => p.nama)])];
+const listPekerjaan = [...new Set([...defaultPekerjaan, ...listPekerjaanRaw.map(p => p.nama)])];
+const listPenghasilan = [...new Set([...defaultPenghasilan, ...listPenghasilanRaw.map(p => p.rentang)])];
+
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const fd = await Astro.request.formData();
+    const d: Record<string, any> = {};
+    fd.forEach((val, key) => {
+      d[key] = String(val);
+    });
+
+    const santriId = crypto.randomUUID();
+
+    // 1. Insert Santri
+    await db.insert(santri).values({
+      id: santriId,
+      nisn: d.nisn || null,
+      nik: d.nik || '',
+      namaLengkap: d.namaLengkap || '',
+      tempatLahir: d.tempatLahir || '',
+      tanggalLahir: d.tanggalLahir as any,
+      jenisKelamin: d.jenisKelamin as 'L' | 'P',
+      hobi: d.hobi || null,
+      citaCita: d.citaCita || null,
+      anakKe: parseInt(d.anakKe) || 1,
+      beratBadan: parseInt(d.beratBadan) || null,
+      tinggiBadan: parseInt(d.tinggiBadan) || null,
+      jumlahSaudaraKandung: parseInt(d.jumlahSaudaraKandung) || 0,
+      jumlahSaudaraTiri: parseInt(d.jumlahSaudaraTiri) || 0,
+      statusKondisiSantri: d.statusKondisiSantri || null,
+    });
+
+    // 2. Insert Pendaftaran
+    await db.insert(pendaftaran).values({
+      santriId,
+      jenjangPendaftaran: d.jenjangPendaftaran || 'SMA',
+      kategoriPendaftaran: d.kategoriPendaftaran || 'Reguler',
+      statusSantri: d.statusSantri || 'Baru',
+    });
+
+    // 3. Insert Alamat
+    await db.insert(alamat).values({
+      santriId,
+      alamatLengkap: d.alamatLengkap || '',
+      provinsiId: d.provinsiNama || null,
+      kabupatenId: d.kabupatenNama || null,
+      kecamatanId: d.kecamatanNama || null,
+      desaKelurahanId: d.desaNama || null,
+      rt: d.rt || null,
+      rw: d.rw || null,
+      kodepos: d.kodepos || null,
+      nomorHpOrangTua: d.nomorHpOrangTua || '',
+      emailOrangTua: d.emailOrangTua || null,
+    });
+
+    // 4. Insert Orang Tua (Ayah)
+    await db.insert(orangTua).values({
+      santriId,
+      tipe: 'AYAH',
+      nama: d.namaAyah || '',
+      nik: d.nikAyah || null,
+      tempatLahir: d.tempatLahirAyah || null,
+      tanggalLahir: (d.tanggalLahirAyah || null) as any,
+      pendidikanId: d.pendidikanAyah || null,
+      pekerjaanId: d.pekerjaanAyah || null,
+      penghasilanId: d.penghasilanAyah || null,
+      kewarganegaraan: (d.kewarganegaraanAyah as 'WNI' | 'WNA') || 'WNI',
+    });
+
+    // 5. Insert Orang Tua (Ibu)
+    await db.insert(orangTua).values({
+      santriId,
+      tipe: 'IBU',
+      nama: d.namaIbu || '',
+      nik: d.nikIbu || null,
+      tempatLahir: d.tempatLahirIbu || null,
+      tanggalLahir: (d.tanggalLahirIbu || null) as any,
+      pendidikanId: d.pendidikanIbu || null,
+      pekerjaanId: d.pekerjaanIbu || null,
+      penghasilanId: d.penghasilanIbu || null,
+      kewarganegaraan: (d.kewarganegaraanIbu as 'WNI' | 'WNA') || 'WNI',
+    });
+
+    // 6. Insert Orang Tua (Wali)
+    if (d.namaWali) {
+      await db.insert(orangTua).values({
+        santriId,
+        tipe: 'WALI',
+        nama: d.namaWali,
+        nik: d.nikWali || null,
+        tempatLahir: d.tempatLahirWali || null,
+        tanggalLahir: (d.tanggalLahirWali || null) as any,
+        pendidikanId: null,
+        pekerjaanId: null,
+        penghasilanId: null,
+        kewarganegaraan: (d.kewarganegaraanWali as 'WNI' | 'WNA') || 'WNI',
+        hubunganWali: d.hubunganWali || null,
+      });
+    }
+
+    // 7. Insert Pendidikan Sebelumnya
+    await db.insert(pendidikanSebelumnya).values({
+      santriId,
+      namaSekolah: d.namaSekolah || '',
+      npsnSekolahLama: d.npsnSekolahLama || null,
+      nsmNss: d.nsmNss || null,
+      dariKelas: d.dariKelas || null,
+      noSkhun: d.noSkhun || null,
+      noPesertaUjian: d.noPesertaUjian || null,
+      rataRataNilaiUn: d.rataRataNilaiUn || null,
+      noIjazah: d.noIjazah || null,
+      tahunLulus: d.tahunLulus || null,
+    });
+
+    // 8. Insert Bansos
+    await db.insert(bantuanSosial).values({
+      santriId,
+      nomorKksKps: d.nomorKksKps || null,
+      nomorPkh: d.nomorPkh || null,
+      nomorKip: d.nomorKip || null,
+      nomorBpjs: d.nomorBpjs || null,
+    });
+
+    // 9. Insert Penunjang
+    await db.insert(informasiPenunjang).values({
+      santriId,
+      organisasiMasyarakatId: d.organisasiMasyarakatId || null,
+      programBeasiswaId: d.programBeasiswaId || null,
+    });
+
+    return Astro.redirect('/admin/pendaftar');
+  } catch (err: any) {
+    console.error("Admin tambah santri error:", err);
+    errorMessage = err.message || "Gagal menyimpan data calon siswa.";
+  }
+}
+
+const inputClass = "w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all";
+const selectClass = "w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none";
+const labelClass = "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5";
+const cardClass = "bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm";
+---
+
+<Panel activeMenu="pendaftar">
+  <div class="py-4 max-w-5xl mx-auto">
+    
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <a href="/admin/pendaftar" class="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline mb-2">
+          ← Kembali ke Daftar
+        </a>
+        <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          Tambah Calon Siswa
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Formulir pendaftaran manual via administrator.</p>
+      </div>
+    </div>
+
+    {errorMessage && (
+      <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 p-4 rounded-xl font-medium text-sm mb-6 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {errorMessage}
+      </div>
+    )}
+
+    <form method="POST" class="space-y-8">
+      
+      <!-- DATA PENDAFTARAN -->
+      <div class={cardClass}>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-500"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Data Pendaftaran
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class={labelClass}>Jenjang Pendaftaran</label>
+            <select name="jenjangPendaftaran" class={selectClass} required>
+              <option value="SMP" selected>SMP</option>
+            </select>
+          </div>
+          <div>
+            <label class={labelClass}>Kategori Jalur</label>
+            <select name="kategoriPendaftaran" class={selectClass} required>
+              <option value="Reguler" selected>Reguler</option>
+              <option value="Prestasi">Prestasi</option>
+              <option value="Afirmasi">Afirmasi (Keluarga Kurang Mampu)</option>
+              <option value="Pindahan">Mutasi/Pindahan</option>
+            </select>
+          </div>
+          <div>
+            <label class={labelClass}>Status Siswa</label>
+            <select name="statusSantri" class={selectClass} required>
+              <option value="Baru" selected>Baru</option>
+              <option value="Pindahan">Pindahan</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA DIRI SANTRI -->
+      <div class={cardClass}>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-500"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Data Diri Calon Siswa
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2">
+            <label class={labelClass}>Nama Lengkap *</label>
+            <input type="text" name="namaLengkap" class={inputClass} placeholder="Nama Lengkap sesuai Akta/Ijazah" required />
+          </div>
+          <div>
+            <label class={labelClass}>NIK (Nomor Induk Kependudukan) *</label>
+            <input type="text" name="nik" class={inputClass} placeholder="16 Digit NIK" required pattern="[0-9]{16}" title="Harus 16 digit angka" />
+          </div>
+          <div>
+            <label class={labelClass}>NISN</label>
+            <input type="text" name="nisn" class={inputClass} placeholder="10 Digit NISN (jika ada)" />
+          </div>
+          <div>
+            <label class={labelClass}>Tempat Lahir *</label>
+            <input type="text" name="tempatLahir" class={inputClass} required />
+          </div>
+          <div>
+            <label class={labelClass}>Tanggal Lahir *</label>
+            <input type="date" name="tanggalLahir" class={inputClass} required />
+          </div>
+          <div>
+            <label class={labelClass}>Jenis Kelamin *</label>
+            <div class="flex items-center gap-6 py-3">
+              <label class="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+                <input type="radio" name="jenisKelamin" value="L" checked class="w-4 h-4 accent-indigo-600" />
+                Laki-laki
+              </label>
+              <label class="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+                <input type="radio" name="jenisKelamin" value="P" class="w-4 h-4 accent-indigo-600" />
+                Perempuan
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class={labelClass}>Status Kondisi Santri</label>
+            <input type="text" name="statusKondisiSantri" class={inputClass} placeholder="Contoh: Normal / Berkebutuhan Khusus" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ALAMAT & KONTAK -->
+      <div class={cardClass}>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-500"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          Alamat & Kontak
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2">
+            <label class={labelClass}>Alamat Lengkap *</label>
+            <textarea name="alamatLengkap" class={`${inputClass} h-24`} placeholder="Nama Jalan, RT/RW, Dusun" required></textarea>
+          </div>
+          <div>
+            <label class={labelClass}>Provinsi</label>
+            <input type="text" name="provinsiNama" class={inputClass} placeholder="Contoh: Jawa Timur" />
+          </div>
+          <div>
+            <label class={labelClass}>Kabupaten / Kota</label>
+            <input type="text" name="kabupatenNama" class={inputClass} placeholder="Contoh: Malang" />
+          </div>
+          <div>
+            <label class={labelClass}>Kecamatan</label>
+            <input type="text" name="kecamatanNama" class={inputClass} placeholder="Contoh: Dau" />
+          </div>
+          <div>
+            <label class={labelClass}>Desa / Kelurahan</label>
+            <input type="text" name="desaNama" class={inputClass} placeholder="Contoh: Sumbersekar" />
+          </div>
+          <div>
+            <label class={labelClass}>No. HP Orang Tua / WhatsApp *</label>
+            <input type="tel" name="nomorHpOrangTua" class={inputClass} placeholder="08xxxxxxxxxx" required />
+          </div>
+          <div>
+            <label class={labelClass}>Email</label>
+            <input type="email" name="emailOrangTua" class={inputClass} placeholder="email@contoh.com" />
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA ORANG TUA -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- AYAH -->
+        <div class={cardClass}>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+            Data Ayah Kandung
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class={labelClass}>Nama Lengkap Ayah *</label>
+              <input type="text" name="namaAyah" class={inputClass} required />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class={labelClass}>NIK Ayah</label>
+                <input type="text" name="nikAyah" class={inputClass} pattern="[0-9]{16}" />
+              </div>
+              <div>
+                <label class={labelClass}>Kewarganegaraan</label>
+                <select name="kewarganegaraanAyah" class={selectClass}>
+                  <option value="WNI">WNI</option>
+                  <option value="WNA">WNA</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class={labelClass}>Tempat Lahir</label>
+                <input type="text" name="tempatLahirAyah" class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>Tanggal Lahir</label>
+                <input type="date" name="tanggalLahirAyah" class={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label class={labelClass}>Pendidikan Terakhir</label>
+              <select name="pendidikanAyah" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPendidikan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label class={labelClass}>Pekerjaan Ayah</label>
+              <select name="pekerjaanAyah" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPekerjaan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label class={labelClass}>Penghasilan Per Bulan</label>
+              <select name="penghasilanAyah" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPenghasilan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- IBU -->
+        <div class={cardClass}>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+            Data Ibu Kandung
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class={labelClass}>Nama Lengkap Ibu *</label>
+              <input type="text" name="namaIbu" class={inputClass} required />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class={labelClass}>NIK Ibu</label>
+                <input type="text" name="nikIbu" class={inputClass} pattern="[0-9]{16}" />
+              </div>
+              <div>
+                <label class={labelClass}>Kewarganegaraan</label>
+                <select name="kewarganegaraanIbu" class={selectClass}>
+                  <option value="WNI">WNI</option>
+                  <option value="WNA">WNA</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class={labelClass}>Tempat Lahir</label>
+                <input type="text" name="tempatLahirIbu" class={inputClass} />
+              </div>
+              <div>
+                <label class={labelClass}>Tanggal Lahir</label>
+                <input type="date" name="tanggalLahirIbu" class={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label class={labelClass}>Pendidikan Terakhir</label>
+              <select name="pendidikanIbu" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPendidikan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label class={labelClass}>Pekerjaan Ibu</label>
+              <select name="pekerjaanIbu" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPekerjaan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label class={labelClass}>Penghasilan Per Bulan</label>
+              <select name="penghasilanIbu" class={selectClass}>
+                <option value="">— Pilih —</option>
+                {listPenghasilan.map(p => (
+                  <option value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ASAL SEKOLAH -->
+      <div class={cardClass}>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-500"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          Asal Sekolah Sebelumnya
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2">
+            <label class={labelClass}>Nama Sekolah Asal *</label>
+            <input type="text" name="namaSekolah" class={inputClass} placeholder="Contoh: SMP Negeri 1 Malang" required />
+          </div>
+          <div>
+            <label class={labelClass}>NPSN</label>
+            <input type="text" name="npsnSekolahLama" class={inputClass} />
+          </div>
+          <div>
+            <label class={labelClass}>Tahun Lulus</label>
+            <input type="text" name="tahunLulus" class={inputClass} placeholder="Contoh: 2026" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-4 border-t border-slate-200 dark:border-slate-800 pt-6">
+        <a href="/admin/pendaftar" class="px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          Batal
+        </a>
+        <button type="submit" class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer">
+          Simpan Calon Siswa
+        </button>
+      </div>
+
+    </form>
+  </div>
+</Panel>

@@ -1,11 +1,619 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import db from "../db";
+import { settings } from "../db/schema";
+import ThemeController from "../components/react/theme-controller";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+let settingsMap: Record<string, string> = {};
+try {
+  const rows = await db.select().from(settings);
+  for (const row of rows) {
+    settingsMap[row.key] = row.value || "";
+  }
+} catch (e) {
+  console.error("Landing settings public load error:", e);
+}
+
+const school = {
+  name: settingsMap["school_name"] || "SMK Unggul Mandiri",
+  tagline:
+    settingsMap["school_tagline"] || "Masa Depan Cerah Dimulai dari Sini",
+  subtitle:
+    settingsMap["school_subtitle"] ||
+    "Penerimaan Peserta Didik Baru (PPDB) Tahun Ajaran 2026/2027 telah dibuka. Daftarkan putra-putri Anda sekarang.",
+  email: settingsMap["school_email"] || "info@smkunggul.sch.id",
+  phone: settingsMap["school_phone"] || "(021) 1234567",
+  whatsapp: settingsMap["school_whatsapp"] || "08123456789",
+  address:
+    settingsMap["school_address"] || "Jl. Pendidikan No. 45, Jakarta Pusat",
+};
+
+const alur = [
+  {
+    no: "01",
+    title: settingsMap["alur_1_title"] || "Registrasi Akun",
+    desc:
+      settingsMap["alur_1_desc"] ||
+      "Daftarkan akun menggunakan NISN dan lengkapi biodata dasar.",
+    icon: settingsMap["alur_1_icon"] || "👤",
+  },
+  {
+    no: "02",
+    title: settingsMap["alur_2_title"] || "Unggah Berkas",
+    desc:
+      settingsMap["alur_2_desc"] ||
+      "Upload scan rapor, kartu keluarga, dan akta kelahiran.",
+    icon: settingsMap["alur_2_icon"] || "📄",
+  },
+  {
+    no: "03",
+    title: settingsMap["alur_3_title"] || "Ujian Seleksi",
+    desc:
+      settingsMap["alur_3_desc"] ||
+      "Mengikuti tes potensi akademik dan tes wawancara.",
+    icon: settingsMap["alur_3_icon"] || "✏️",
+  },
+  {
+    no: "04",
+    title: settingsMap["alur_4_title"] || "Pengumuman",
+    desc:
+      settingsMap["alur_4_desc"] ||
+      "Melihat hasil seleksi di dashboard pendaftar.",
+    icon: settingsMap["alur_4_icon"] || "🎉",
+  },
+];
+
+const keunggulan = [
+  {
+    title: settingsMap["keunggulan_1_title"] || "Fasilitas Modern",
+    desc:
+      settingsMap["keunggulan_1_desc"] ||
+      "Laboratorium komputer, ruang kelas ber-AC, dan perpustakaan lengkap.",
+    icon: settingsMap["keunggulan_1_icon"] || "🏫",
+  },
+  {
+    title: settingsMap["keunggulan_2_title"] || "Kurikulum Industri",
+    desc:
+      settingsMap["keunggulan_2_desc"] ||
+      "Materi disesuaikan dengan kebutuhan industri masa kini.",
+    icon: settingsMap["keunggulan_2_icon"] || "📚",
+  },
+  {
+    title: settingsMap["keunggulan_3_title"] || "Ekskul Beragam",
+    desc:
+      settingsMap["keunggulan_3_desc"] ||
+      "Wadahi minat dan bakat di bidang olahraga, seni, dan teknologi.",
+    icon: settingsMap["keunggulan_3_icon"] || "🏆",
+  },
+  {
+    title: settingsMap["keunggulan_4_title"] || "Guru Berpengalaman",
+    desc:
+      settingsMap["keunggulan_4_desc"] ||
+      "Tenaga pendidik profesional dan bersertifikat nasional.",
+    icon: settingsMap["keunggulan_4_icon"] || "👨‍🏫",
+  },
+];
+
+let customAnnouncements = [];
+if (settingsMap["artikel_pengumuman"]) {
+  try {
+    customAnnouncements = JSON.parse(settingsMap["artikel_pengumuman"]);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const slot1Id = settingsMap["landing_announcement_1"] || "";
+const slot2Id = settingsMap["landing_announcement_2"] || "";
+const slot3Id = settingsMap["landing_announcement_3"] || "";
+
+const slotIds = [slot1Id, slot2Id, slot3Id].filter(Boolean);
+
+// Only show announcements that are explicitly selected in admin settings
+const pengumuman = slotIds
+  .map((id: string) => customAnnouncements.find((a: any) => a.id === id))
+  .filter(Boolean);
+
+import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout>
-	<Welcome />
+<Layout
+  title={`PPDB ${school.name}`}
+  description={school.subtitle}
+  keywords="PPDB, sekolah, pendaftaran sekolah, SMP IT Darussalam Luwuk"
+>
+  <!-- NAVBAR -->
+  <nav
+    class="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-800/50 transition-colors duration-300"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Logo -->
+        <div class="flex items-center gap-2">
+          {settingsMap['school_logo'] ? (
+            <img src={settingsMap['school_logo']} alt="Logo" class="h-10 w-auto object-contain" />
+          ) : (
+            <span class="text-2xl">📚</span>
+          )}
+          <span
+            class="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent"
+          >
+            {school.name}
+          </span>
+        </div>
+
+        <!-- Desktop Nav -->
+        <div class="hidden md:flex items-center space-x-8">
+          <a
+            href="#pengumuman"
+            class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >Pengumuman</a
+          >
+          <a
+            href="#alur"
+            class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >Alur Daftar</a
+          >
+          <a
+            href="#keunggulan"
+            class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >Keunggulan</a
+          >
+          <a
+            href="#kontak"
+            class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >Kontak</a
+          >
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-4">
+          <!-- Dark Mode Toggle -->
+          <ThemeController client:only="react" />
+
+          <a
+            href="/daftar"
+            class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 hover:-translate-y-0.5 transition-all"
+          >
+            Daftar Sekarang
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section
+    class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden bg-slate-950 text-white"
+  >
+    <div
+      class="absolute inset-0 bg-[url('/images/hero-bg.png')] bg-cover bg-center opacity-20 mix-blend-overlay"
+    >
+    </div>
+    <div
+      class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900/90 to-indigo-950/80"
+    >
+    </div>
+
+    <!-- Decorative Glow -->
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse"
+    >
+    </div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse delay-1000"
+    >
+    </div>
+
+    <div
+      class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center"
+    >
+      <!-- Left Content -->
+      <div class="text-center lg:text-left">
+        <div
+          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold mb-6 backdrop-blur-md"
+        >
+          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+          PPDB 2026/2027 Dibuka
+        </div>
+
+        <h1
+          class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6"
+        >
+          {school.tagline.split(" ").slice(0, 4).join(" ")}
+          <span
+            class="bg-gradient-to-r from-indigo-400 via-violet-400 to-pink-400 bg-clip-text text-transparent"
+          >
+            {school.tagline.split(" ").slice(4).join(" ")}
+          </span>
+        </h1>
+
+        <p
+          class="text-lg text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+        >
+          {school.subtitle}
+        </p>
+
+        <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+          <a
+            href="/daftar"
+            class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/40 hover:-translate-y-1 transition-all flex items-center gap-2"
+          >
+            Daftar Sekarang <span class="text-xl">→</span>
+          </a>
+          <a
+            href={settingsMap["school_brochure"] ||
+              "/brosur/brosur-ppdb-2026.pdf"}
+            target="_blank"
+            class="bg-white/10 hover:bg-white/15 text-white border border-white/10 px-8 py-4 rounded-2xl font-bold backdrop-blur-md hover:-translate-y-1 transition-all"
+          >
+            Unduh Brosur
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            50+
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Siswa Aktif
+          </div>
+        </div>
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            12+
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Program Unggulan
+          </div>
+        </div>
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            98%
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Lulus UN
+          </div>
+        </div>
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            50+
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Guru Ahli
+          </div>
+        </div>
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            15+
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Ekskul
+          </div>
+        </div>
+        <div
+          class="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all group text-center"
+        >
+          <div
+            class="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform"
+          >
+            -
+          </div>
+          <div class="text-xs sm:text-sm text-slate-400 font-medium mt-2">
+            Akreditasi
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PENGUMUMAN -->
+  <section
+    class="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+    id="pengumuman"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span
+          class="text-xs font-bold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-100 dark:bg-indigo-950/50 px-4 py-1.5 rounded-full inline-block mb-4"
+          >📢 Terkini</span
+        >
+        <h2
+          class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-4"
+        >
+          Pengumuman PPDB
+        </h2>
+        <p class="text-slate-600 dark:text-slate-400">
+          Informasi terbaru terkait proses penerimaan peserta didik baru.
+        </p>
+      </div>
+
+      {
+        pengumuman.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {pengumuman.map((a: any) => (
+              <a
+                href={`/pengumuman/${a.id}`}
+                class="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200/60 dark:border-slate-700/50 shadow-sm hover:shadow-xl hover:border-indigo-500/50 dark:hover:border-indigo-400/50 hover:-translate-y-1 transition-all duration-300 relative group flex flex-col justify-between h-full"
+              >
+                {a.isPinned && (
+                  <span class="absolute top-6 right-6 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                    📌 Pinned
+                  </span>
+                )}
+                <div>
+                  <div
+                    class={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-inner ${
+                      a.category === "Kelulusan"
+                        ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600"
+                        : a.category === "Peringatan"
+                          ? "bg-amber-100 dark:bg-amber-950/50 text-amber-600"
+                          : "bg-blue-100 dark:bg-blue-950/50 text-blue-600"
+                    }`}
+                  >
+                    {a.category === "Kelulusan"
+                      ? "🎉"
+                      : a.category === "Peringatan"
+                        ? "⚠️"
+                        : "ℹ️"}
+                  </div>
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {a.title}
+                  </h3>
+                </div>
+                <div class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-4">
+                  <span>📅</span> {a.date}
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
+            <div class="mx-auto w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+              <span class="text-3xl">📢</span>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 font-semibold">
+              Belum ada pengumuman saat ini.
+            </p>
+            <p class="text-slate-400 dark:text-slate-500 text-sm mt-1">
+              Informasi terbaru akan ditampilkan di sini.
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- ALUR -->
+  <section
+    class="py-24 bg-gradient-to-br from-indigo-900 via-slate-950 to-violet-950 text-white relative overflow-hidden"
+    id="alur"
+  >
+    <!-- Decorative Glow -->
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-3xl"
+    >
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span
+          class="text-xs font-bold tracking-widest text-indigo-300 uppercase bg-white/10 px-4 py-1.5 rounded-full inline-block mb-4"
+          >Panduan</span
+        >
+        <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">
+          Alur Pendaftaran
+        </h2>
+        <p class="text-indigo-200">
+          Ikuti langkah-langkah berikut untuk menyelesaikan proses pendaftaran.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {
+          alur.map((a) => (
+            <div class="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300 group">
+              <div class="text-5xl font-black text-white/5 mb-6 group-hover:text-white/10 transition-colors absolute top-4 right-6 pointer-events-none">
+                {a.no}
+              </div>
+              <div class="w-16 h-16 flex items-center justify-center bg-white/10 rounded-2xl text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform group-hover:bg-white/20">
+                {a.icon}
+              </div>
+              <h3 class="text-xl font-bold mb-2 text-white">{a.title}</h3>
+              <p class="text-slate-300 text-sm leading-relaxed">{a.desc}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- KEUNGGULAN -->
+  <section
+    class="py-24 bg-white dark:bg-slate-950 transition-colors duration-300"
+    id="keunggulan"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span
+          class="text-xs font-bold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-100 dark:bg-indigo-950/50 px-4 py-1.5 rounded-full inline-block mb-4"
+          >✨ Mengapa Kami</span
+        >
+        <h2
+          class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-4"
+        >
+          Keunggulan Kami
+        </h2>
+        <p class="text-slate-600 dark:text-slate-400">
+          Bergabunglah dan rasakan perbedaannya.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {
+          keunggulan.map((k) => (
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/50 rounded-3xl p-8 hover:shadow-2xl hover:border-indigo-500/30 dark:hover:border-indigo-400/30 hover:-translate-y-1 transition-all duration-300 group">
+              <div class="w-16 h-16 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/50 rounded-2xl text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50">
+                {k.icon}
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                {k.title}
+              </h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                {k.desc}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- KONTAK -->
+  <section
+    class="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+    id="kontak"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span
+          class="text-xs font-bold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-100 dark:bg-indigo-950/50 px-4 py-1.5 rounded-full inline-block mb-4"
+          >📞 Hubungi Kami</span
+        >
+        <h2
+          class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-4"
+        >
+          Informasi Kontak
+        </h2>
+        <p class="text-slate-600 dark:text-slate-400">
+          Ada pertanyaan? Hubungi tim kami.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div
+          class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div class="text-3xl mb-4 inline-block">📧</div>
+          <div
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1"
+          >
+            Email
+          </div>
+          <div
+            class="text-slate-900 dark:text-white font-semibold text-sm break-all"
+          >
+            {school.email}
+          </div>
+        </div>
+        <div
+          class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div class="text-3xl mb-4 inline-block">📞</div>
+          <div
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1"
+          >
+            Telepon
+          </div>
+          <div
+            class="text-slate-900 dark:text-white font-semibold text-sm break-all"
+          >
+            {school.phone}
+          </div>
+        </div>
+        <div
+          class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div class="text-3xl mb-4 inline-block">💬</div>
+          <div
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1"
+          >
+            WhatsApp
+          </div>
+          <div
+            class="text-slate-900 dark:text-white font-semibold text-sm break-all"
+          >
+            {school.whatsapp}
+          </div>
+        </div>
+        <div
+          class="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div class="text-3xl mb-4 inline-block">📍</div>
+          <div
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1"
+          >
+            Alamat
+          </div>
+          <div
+            class="text-slate-900 dark:text-white font-semibold text-sm break-all"
+          >
+            {school.address}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-24 bg-slate-950 text-white relative overflow-hidden">
+    <div
+      class="absolute inset-0 bg-gradient-to-r from-indigo-900 to-violet-950 opacity-50"
+    >
+    </div>
+    <div class="relative z-10 max-w-4xl mx-auto text-center px-4">
+      <h2
+        class="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-6 leading-tight"
+      >
+        Siap Bergabung Bersama Kami?
+      </h2>
+      <p class="text-lg text-slate-300 mb-10">
+        Daftarkan diri Anda sekarang sebelum kuota penuh.
+      </p>
+      <div class="flex justify-center">
+        <a
+          href="/daftar"
+          class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-10 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/40 hover:-translate-y-1 transition-all flex items-center gap-2 text-lg"
+        >
+          Mulai Pendaftaran <span>→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer
+    class="bg-slate-950 border-t border-slate-800/50 py-12 text-center text-slate-500 text-sm"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <p>
+        © 2026 {school.name}. Semua hak dilindungi. | <a
+          href="#"
+          class="text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+          >build with ❤️</a>
+      </p>
+    </div>
+  </footer>
 </Layout>

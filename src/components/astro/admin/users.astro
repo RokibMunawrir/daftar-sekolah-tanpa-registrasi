@@ -1,0 +1,419 @@
+---
+import Panel from "../ui/panel.astro";
+import db from "../../../db";
+import { user } from "../../../db/schema";
+
+const dbUsers = await db.select().from(user);
+
+const usersList = dbUsers.map(u => ({
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: (u as any).role || "Admin",
+  isActive: (u as any).isActive !== false,
+  avatar: u.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()
+}));
+---
+
+<Panel activeMenu="setting-users">
+  <div class="space-y-8 pb-12">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">Manajemen Akun Pengguna</h2>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+          Kelola hak akses untuk administrator, panitia pendaftaran, dan staf tata usaha.
+        </p>
+      </div>
+      <div>
+        <button id="add-user-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/20 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/></svg>
+          Tambah Admin
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none flex items-center justify-between">
+        <div>
+          <span class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Operator</span>
+          <p class="text-3xl font-black mt-1 text-slate-900 dark:text-white" id="stat-total-users">{usersList.length}</p>
+        </div>
+        <div class="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none flex items-center justify-between">
+        <div>
+          <span class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status Aktif</span>
+          <p class="text-3xl font-black mt-1 text-slate-900 dark:text-white" id="stat-active-users">{usersList.filter(u => u.isActive).length}</p>
+        </div>
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-100/30 dark:shadow-none overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
+              <th class="px-6 py-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nama Pengguna</th>
+              <th class="px-6 py-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Peran (Role)</th>
+              <th class="px-6 py-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50" id="users-table-body">
+            {usersList.map((user) => (
+              <tr class="hover:bg-indigo-50/10 dark:hover:bg-slate-800/20 transition-all duration-200 group" data-id={user.id}>
+                <td class="px-6 py-5 whitespace-nowrap">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white flex items-center justify-center flex-shrink-0 font-extrabold text-sm shadow-sm group-hover:scale-105 transition-all">
+                      {user.avatar}
+                    </div>
+                    <span class="font-extrabold text-slate-800 dark:text-slate-200 text-base">{user.name}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-5 whitespace-nowrap font-semibold text-sm text-slate-600 dark:text-slate-400">
+                  {user.email}
+                </td>
+                <td class="px-6 py-5 whitespace-nowrap">
+                  <span class={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold ${
+                    user.role === 'Super Admin' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' :
+                    user.role === 'Panitia PPDB' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                    'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
+                  }`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td class="px-6 py-5 whitespace-nowrap">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer user-status-toggle" checked={user.isActive} data-id={user.id}>
+                    <div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:bg-slate-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-slate-700 peer-checked:bg-gradient-to-r peer-checked:from-indigo-600 peer-checked:to-violet-600 shadow-sm"></div>
+                    <span class="ml-3 text-xs font-bold text-slate-400 dark:text-slate-500 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors">
+                      {user.isActive ? 'Aktif' : 'Blokir'}
+                    </span>
+                  </label>
+                </td>
+                <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                  <div class="flex items-center justify-end gap-2">
+                    <button class="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-xl transition-all edit-user-btn cursor-pointer" title="Edit Akun" data-id={user.id} data-name={user.name} data-email={user.email} data-role={user.role}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    </button>
+                    <button class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all delete-user-btn cursor-pointer" title="Hapus Akun" data-id={user.id}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Akun -->
+  <div id="user-modal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50 hidden opacity-0 transition-all duration-300">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 scale-95 transition-all duration-300" id="modal-panel">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Tambah Akun Baru</h3>
+        <button type="button" id="close-modal-x" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="add-user-form" class="space-y-4">
+        <input type="hidden" id="user-id-input" />
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap</label>
+          <input type="text" id="user-name-input" class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" placeholder="Contoh: Farhan Kamil" required />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat Email</label>
+          <input type="email" id="user-email-input" class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" placeholder="farhan@sekolah.sch.id" required />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Peran Akun</label>
+          <select id="user-role-input" class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-700 dark:text-slate-300">
+            <option value="Super Admin">Super Admin</option>
+            <option value="Panitia PPDB">Panitia PPDB</option>
+            <option value="Tata Usaha">Tata Usaha</option>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Password Baru</label>
+          <input type="password" id="user-password-input" class="w-full px-4 py-3 text-sm font-bold bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" placeholder="********" required />
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" id="close-modal-btn" class="px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">Batal</button>
+          <button type="submit" id="save-user-btn" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 text-white transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] space-y-3"></div>
+</Panel>
+
+<script>
+  // Modal Logic
+  const modal = document.getElementById('user-modal');
+  const modalPanel = document.getElementById('modal-panel');
+  const addBtn = document.getElementById('add-user-btn');
+  const closeBtn = document.getElementById('close-modal-btn');
+  const closeX = document.getElementById('close-modal-x');
+
+  const openModal = () => {
+    modal?.classList.remove('hidden');
+    setTimeout(() => {
+      modal?.classList.add('opacity-100');
+      modalPanel?.classList.add('scale-100');
+    }, 50);
+  };
+
+  const closeModal = () => {
+    modal?.classList.remove('opacity-100');
+    modalPanel?.classList.remove('scale-100');
+    setTimeout(() => {
+      modal?.classList.add('hidden');
+    }, 300);
+  };
+
+  addBtn?.addEventListener('click', () => {
+    // Reset form for "Add" mode
+    const form = document.getElementById('add-user-form') as HTMLFormElement;
+    const modalTitle = document.querySelector('#modal-panel h3');
+    const idInput = document.getElementById('user-id-input') as HTMLInputElement;
+    const passwordInput = document.getElementById('user-password-input') as HTMLInputElement;
+    
+    if (form) form.reset();
+    if (modalTitle) modalTitle.textContent = 'Tambah Akun Baru';
+    if (idInput) idInput.value = '';
+    if (passwordInput) passwordInput.required = true;
+    
+    openModal();
+  });
+  closeBtn?.addEventListener('click', closeModal);
+  closeX?.addEventListener('click', closeModal);
+
+  // Table functionality (Delete, Toggle)
+  const calculateStats = () => {
+    const totalUsers = document.querySelectorAll('#users-table-body tr').length;
+    let activeUsers = 0;
+
+    document.querySelectorAll('.user-status-toggle').forEach(input => {
+      if ((input as HTMLInputElement).checked) activeUsers++;
+    });
+
+    const statTotal = document.getElementById('stat-total-users');
+    const statActive = document.getElementById('stat-active-users');
+
+    if (statTotal) statTotal.textContent = totalUsers.toString();
+    if (statActive) statActive.textContent = activeUsers.toString();
+  };
+
+  // Toast Logic
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'bg-red-50 dark:bg-red-950/20';
+    const borderColor = type === 'success' ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-red-200 dark:border-red-800/50';
+    const textColor = type === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-800 dark:text-red-400';
+    const iconColor = type === 'success' ? 'text-emerald-500' : 'text-red-500';
+    
+    const icon = type === 'success' 
+      ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+
+    toast.className = `flex items-start gap-3 p-4 rounded-2xl border backdrop-blur-md ${bgColor} ${borderColor} ${textColor} shadow-2xl max-w-md transition-all duration-300 translate-y-10 opacity-0`;
+    toast.innerHTML = `
+      <div class="flex-shrink-0 ${iconColor} mt-0.5">${icon}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-bold tracking-tight mb-0.5">${type === 'success' ? 'Berhasil' : 'Kesalahan'}</p>
+        <p class="text-xs font-semibold opacity-90 leading-relaxed">${message}</p>
+      </div>
+    `;
+
+    container.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => {
+      toast.classList.remove('translate-y-10', 'opacity-0');
+    }, 10);
+
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'translate-x-10');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  };
+
+  const attachListeners = () => {
+    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const btnElement = target.closest('.edit-user-btn') as HTMLButtonElement;
+        const { id, name, email, role } = btnElement.dataset;
+        
+        const modalTitle = document.querySelector('#modal-panel h3');
+        const idInput = document.getElementById('user-id-input') as HTMLInputElement;
+        const nameInput = document.getElementById('user-name-input') as HTMLInputElement;
+        const emailInput = document.getElementById('user-email-input') as HTMLInputElement;
+        const roleInput = document.getElementById('user-role-input') as HTMLSelectElement;
+        const passwordInput = document.getElementById('user-password-input') as HTMLInputElement;
+        
+        if (modalTitle) modalTitle.textContent = 'Edit Akun';
+        if (idInput) idInput.value = id || '';
+        if (nameInput) nameInput.value = name || '';
+        if (emailInput) emailInput.value = email || '';
+        if (roleInput) roleInput.value = role || 'Admin';
+        if (passwordInput) passwordInput.required = false; // Optional when editing
+        
+        openModal();
+      });
+    });
+
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.target as HTMLElement;
+        const btnElement = target.closest('.delete-user-btn') as HTMLButtonElement;
+        const id = btnElement?.dataset.id;
+        const row = btnElement?.closest('tr');
+
+        if (!id) return;
+
+        (window as any).showConfirmModal({
+          title: 'Hapus User',
+          type: 'delete',
+          message: 'Apakah Anda yakin ingin menghapus user ini?',
+          onConfirm: async () => {
+            try {
+              const res = await fetch('/api/admin/users/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+              });
+              
+              if (res.ok) {
+                row?.remove();
+                calculateStats();
+                showToast('User berhasil dihapus', 'success');
+              } else {
+                const data = await res.json();
+                showToast(data.message || 'Gagal menghapus user', 'error');
+              }
+            } catch (err) {
+              console.error(err);
+              showToast('Terjadi kesalahan sistem', 'error');
+            }
+          }
+        });
+      });
+    });
+
+    document.querySelectorAll('.user-status-toggle').forEach(input => {
+      input.addEventListener('change', async (e) => {
+        const target = e.target as HTMLInputElement;
+        const id = target.dataset.id;
+        if (!id) return;
+
+        try {
+          const res = await fetch('/api/admin/users/toggle-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, isActive: target.checked })
+          });
+
+          if (res.ok) {
+            const textNode = target.closest('label')?.querySelector('span');
+            if (textNode) textNode.textContent = target.checked ? 'Aktif' : 'Blokir';
+            calculateStats();
+            showToast(`Status user diperbarui menjadi ${target.checked ? 'Aktif' : 'Blokir'}`, 'success');
+          } else {
+            target.checked = !target.checked; // Revert
+            showToast('Gagal mengubah status', 'error');
+          }
+        } catch (err) {
+          target.checked = !target.checked; // Revert
+          showToast('Terjadi kesalahan sistem', 'error');
+          console.error(err);
+        }
+      });
+    });
+  };
+  attachListeners();
+
+  // Add User Form Submit
+  const form = document.getElementById('add-user-form');
+  const saveBtn = document.getElementById('save-user-btn') as HTMLButtonElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const idInput = document.getElementById('user-id-input') as HTMLInputElement;
+    const nameInput = document.getElementById('user-name-input') as HTMLInputElement;
+    const emailInput = document.getElementById('user-email-input') as HTMLInputElement;
+    const roleInput = document.getElementById('user-role-input') as HTMLSelectElement;
+    const passwordInput = document.getElementById('user-password-input') as HTMLInputElement;
+
+    if (!nameInput || !emailInput) return;
+
+    const isEdit = idInput && idInput.value !== '';
+    const apiUrl = isEdit ? '/api/admin/users/update' : '/api/admin/users/add';
+
+    try {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Menyimpan...';
+
+      const payload: any = {
+        name: nameInput.value,
+        email: emailInput.value,
+        role: roleInput.value,
+      };
+
+      if (isEdit) {
+        payload.id = idInput.value;
+      }
+      
+      if (passwordInput.value) {
+        payload.password = passwordInput.value;
+      }
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(isEdit ? 'User berhasil diperbarui!' : 'User berhasil ditambahkan!', 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showToast(data.message || 'Gagal menyimpan user', 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Simpan';
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Terjadi kesalahan sistem', 'error');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Simpan';
+    }
+  });
+</script>

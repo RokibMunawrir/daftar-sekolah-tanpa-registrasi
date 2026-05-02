@@ -1,0 +1,148 @@
+---
+/**
+ * Reusable Confirm Modal (Astro SSR version)
+ * Replaces all native confirm() dialogs across admin panel.
+ * 
+ * Usage: Include once in panel.astro or any page, then trigger via JS:
+ *   window.showConfirmModal({ title, message, type, onConfirm })
+ */
+---
+
+<!-- Confirm Modal Overlay -->
+<div id="confirm-modal-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 hidden">
+  <!-- Backdrop -->
+  <div id="confirm-modal-backdrop" class="fixed inset-0 bg-slate-950/40 backdrop-blur-[4px] transition-opacity duration-300 opacity-0"></div>
+  
+  <!-- Modal Panel -->
+  <div id="confirm-modal-panel" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] w-full max-w-md shadow-2xl p-6 z-10 transform scale-95 opacity-0 transition-all duration-300 relative">
+    
+    <!-- Icon Container -->
+    <div id="confirm-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full mb-4"></div>
+
+    <!-- Title -->
+    <h3 id="confirm-modal-title" class="text-xl font-bold text-slate-900 dark:text-white text-center mb-4"></h3>
+
+    <!-- Message -->
+    <p id="confirm-modal-message" class="text-sm font-semibold text-slate-500 dark:text-slate-400 text-center leading-relaxed mb-6"></p>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+      <button 
+        type="button" 
+        id="confirm-modal-cancel"
+        class="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
+      >
+        Batal
+      </button>
+      <button 
+        type="button" 
+        id="confirm-modal-confirm"
+        class="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm text-white focus:outline-none focus:ring-4 shadow-lg transition-all cursor-pointer"
+      >
+        Konfirmasi
+      </button>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (function() {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const backdrop = document.getElementById('confirm-modal-backdrop');
+    const panel = document.getElementById('confirm-modal-panel');
+    const iconEl = document.getElementById('confirm-modal-icon');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const messageEl = document.getElementById('confirm-modal-message');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    const confirmBtn = document.getElementById('confirm-modal-confirm');
+
+    let _onConfirm = null;
+
+    const typeConfig = {
+      delete: {
+        iconBg: 'bg-red-100 dark:bg-red-950/30',
+        iconColor: 'text-red-600 dark:text-red-400',
+        iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>',
+        btnClass: 'bg-red-600 hover:bg-red-700 focus:ring-red-500/20 shadow-red-500/10',
+        btnText: 'Hapus',
+        defaultMessage: 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
+      },
+      logout: {
+        iconBg: 'bg-amber-100 dark:bg-amber-950/30',
+        iconColor: 'text-amber-600 dark:text-amber-400',
+        iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>',
+        btnClass: 'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500/20 shadow-amber-500/10',
+        btnText: 'Logout',
+        defaultMessage: 'Apakah Anda yakin ingin keluar dari akun administrator saat ini?'
+      },
+      default: {
+        iconBg: 'bg-indigo-100 dark:bg-indigo-950/30',
+        iconColor: 'text-indigo-600 dark:text-indigo-400',
+        iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+        btnClass: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500/20 shadow-indigo-500/10',
+        btnText: 'Konfirmasi',
+        defaultMessage: 'Apakah Anda yakin ingin melanjutkan tindakan ini?'
+      }
+    };
+
+    function openModal() {
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        backdrop.classList.add('opacity-100');
+        panel.classList.remove('scale-95', 'opacity-0');
+        panel.classList.add('scale-100', 'opacity-100');
+      });
+    }
+
+    function closeModal() {
+      backdrop.classList.remove('opacity-100');
+      panel.classList.remove('scale-100', 'opacity-100');
+      panel.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        document.body.style.overflow = 'unset';
+        _onConfirm = null;
+      }, 300);
+    }
+
+    /**
+     * Global API — call from anywhere:
+     * window.showConfirmModal({ title, message, type, onConfirm })
+     */
+    window.showConfirmModal = function({ title, message, type = 'default', onConfirm }) {
+      const cfg = typeConfig[type] || typeConfig.default;
+
+      // Set icon
+      iconEl.className = `mx-auto flex h-12 w-12 items-center justify-center rounded-full mb-4 ${cfg.iconBg} ${cfg.iconColor}`;
+      iconEl.innerHTML = cfg.iconSvg;
+
+      // Set text
+      titleEl.textContent = title || 'Konfirmasi';
+      messageEl.textContent = message || cfg.defaultMessage;
+
+      // Set confirm button style
+      confirmBtn.className = `flex-1 px-4 py-2.5 rounded-xl font-bold text-sm text-white focus:outline-none focus:ring-4 shadow-lg transition-all cursor-pointer ${cfg.btnClass}`;
+      confirmBtn.textContent = cfg.btnText;
+
+      _onConfirm = onConfirm;
+      openModal();
+    };
+
+    cancelBtn?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+
+    confirmBtn?.addEventListener('click', () => {
+      if (typeof _onConfirm === 'function') {
+        _onConfirm();
+      }
+      closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+  })();
+</script>
