@@ -178,7 +178,7 @@ const listPenghasilan = ['Kurang dari Rp 500.000', 'Rp 500.000 - Rp 1.000.000', 
               </div>
               <div class="md:col-span-2">
                 <label class={labelClass}>Email Orang Tua</label>
-                <input type="email" name="emailOrangTua" class={inputClass} />
+                <input type="email" name="emailOrangTua" value={v('emailOrangTua')?.toLowerCase()} class={inputClass} />
               </div>
             </div>
           )}
@@ -392,3 +392,30 @@ const listPenghasilan = ['Kurang dari Rp 500.000', 'Rp 500.000 - Rp 1.000.000', 
     });
   </script>
 )}
+
+<script>
+  function applyCapitalization() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], textarea');
+    inputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        const value = target.value;
+        target.value = value.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+      });
+    });
+
+    const emailInputs = document.querySelectorAll('input[type="email"]');
+    emailInputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement;
+        target.value = target.value.toLowerCase();
+      });
+    });
+  }
+
+  // Run on initial load
+  applyCapitalization();
+
+  // If using view transitions or dynamic loading, you might need to re-run this.
+  // But for standard Astro pages, this should be enough since each step is usually a full page reload or handled via forms.
+</script>

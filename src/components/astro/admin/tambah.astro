@@ -468,3 +468,23 @@ const cardClass = "bg-white dark:bg-slate-900 border border-slate-200/60 dark:bo
     </form>
   </div>
 </Panel>
+
+<script>
+  // Auto-capitalize all text inputs and textareas
+  const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], textarea');
+  inputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+      const value = target.value;
+      target.value = value.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+    });
+  });
+
+  const emailInputs = document.querySelectorAll('input[type="email"]');
+  emailInputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      target.value = target.value.toLowerCase();
+    });
+  });
+</script>

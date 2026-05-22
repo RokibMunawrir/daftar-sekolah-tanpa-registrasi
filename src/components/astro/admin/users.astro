@@ -278,7 +278,7 @@ const usersList = dbUsers.map(u => ({
         if (modalTitle) modalTitle.textContent = 'Edit Akun';
         if (idInput) idInput.value = id || '';
         if (nameInput) nameInput.value = name || '';
-        if (emailInput) emailInput.value = email || '';
+        if (emailInput) emailInput.value = (email || '').toLowerCase();
         if (roleInput) roleInput.value = role || 'Admin';
         if (passwordInput) passwordInput.required = false; // Optional when editing
         
@@ -415,5 +415,17 @@ const usersList = dbUsers.map(u => ({
       saveBtn.disabled = false;
       saveBtn.textContent = 'Simpan';
     }
+  });
+
+  // Auto-capitalize name input (Title Case)
+  const nameInput = document.getElementById('user-name-input') as HTMLInputElement;
+  nameInput?.addEventListener('input', () => {
+    nameInput.value = nameInput.value.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+  });
+
+  // Auto-lowercase email input
+  const emailInput = document.getElementById('user-email-input') as HTMLInputElement;
+  emailInput?.addEventListener('input', () => {
+    emailInput.value = emailInput.value.toLowerCase();
   });
 </script>

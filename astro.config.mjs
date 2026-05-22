@@ -9,9 +9,9 @@ export default defineConfig({
   site: process.env.SITE || 'http://localhost:4321',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
-  // security: {
-  //   checkOrigin: false
-  // },
+  security: {
+    checkOrigin: false
+  },
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],

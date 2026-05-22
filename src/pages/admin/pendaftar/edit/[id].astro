@@ -286,7 +286,7 @@ const sectionClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:bo
             </div>
             <div>
               <label class={labelClass}>Email</label>
-              <input type="email" name="emailOrangTua" value={dataAlamat?.emailOrangTua} class={inputClass} />
+              <input type="email" name="emailOrangTua" value={dataAlamat?.emailOrangTua?.toLowerCase()} class={inputClass} />
             </div>
           </div>
         </div>
@@ -387,3 +387,22 @@ const sectionClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:bo
     </div>
   </Panel>
 </Layout>
+
+<script>
+  const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], textarea');
+  inputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+      const value = target.value;
+      target.value = value.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+    });
+  });
+
+  const emailInputs = document.querySelectorAll('input[type="email"]');
+  emailInputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      target.value = target.value.toLowerCase();
+    });
+  });
+</script>

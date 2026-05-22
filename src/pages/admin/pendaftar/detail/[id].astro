@@ -100,8 +100,8 @@ const cardClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:borde
 
     <!-- Data Grid -->
     <div class="grid grid-cols-3 gap-y-5 text-sm border border-slate-200 rounded-2xl p-6 mb-8 bg-slate-50/50">
-      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">No. Pendaftaran</div>
-      <div class="col-span-2 font-bold text-slate-900">: {dataPendaftaran?.id || id}</div>
+      <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">No. Pendaftaran (NIS)</div>
+      <div class="col-span-2 font-bold text-slate-900">: {dataSantri?.nis}</div>
 
       <div class="font-bold text-slate-500 uppercase tracking-wider text-xs">Tanggal Daftar</div>
       <div class="col-span-2 font-semibold text-slate-800">: {formatDate(dataPendaftaran?.createdAt)}</div>
@@ -132,12 +132,11 @@ const cardClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:borde
     <!-- Footer / Tanda Tangan -->
     <div class="flex justify-end text-sm">
       <div class="text-center w-64">
-        <p class="text-xs text-slate-500 mb-1">{settingsMap['school_address']?.split(',')[0] || 'Luwuk'}, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <p class="font-bold text-slate-800 mb-24">Mengetahui,<br/>Kepala Sekolah</p>
-        <div class="border-b-2 border-slate-900 font-extrabold uppercase pb-1 text-slate-950">
-          ( ................................................ )
+        <p class="text-slate-500 mb-1">Banggai, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <p class="text-slate-800 mb-24">Mengetahui,<br/>Kepala Sekolah</p>
+        <div class="font-bold uppercase pb-1 text-slate-950">
+          Ahmad Fahmi Nur Fuad, S.E
         </div>
-        <p class="text-xs text-slate-500 mt-1">NIP. ........................................</p>
       </div>
     </div>
   </div>
