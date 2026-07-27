@@ -14,13 +14,13 @@ try {
 }
 
 const school = {
-  name: settingsMap["school_name"] || "SMK Unggul Mandiri",
+  name: settingsMap["school_name"] || "SMPIT Darussalam Luwuk",
   tagline:
-    settingsMap["school_tagline"] || "Masa Depan Cerah Dimulai dari Sini",
+    settingsMap["school_tagline"] || "Masa Depan Cerah Mulai dari Sini",
   subtitle:
     settingsMap["school_subtitle"] ||
     "Penerimaan Peserta Didik Baru (PPDB) Tahun Ajaran 2026/2027 telah dibuka. Daftarkan putra-putri Anda sekarang.",
-  email: settingsMap["school_email"] || "info@smkunggul.sch.id",
+  email: settingsMap["school_email"] || "[EMAIL_ADDRESS]",
   phone: settingsMap["school_phone"] || "(021) 1234567",
   whatsapp: settingsMap["school_whatsapp"] || "08123456789",
   address:
@@ -120,6 +120,12 @@ import Layout from "../layouts/Layout.astro";
   title={`PPDB ${school.name}`}
   description={school.subtitle}
   keywords="PPDB, sekolah, pendaftaran sekolah, SMP IT Darussalam Luwuk"
+  ogTitle={`PPDB ${school.name}`}
+  ogDescription={school.subtitle}
+  ogImage={"/og-image.png"}
+  ogType="website"
+  canonical={Astro.url.href}
+  author={settingsMap["school_name"] || "SMP IT Darussalam Luwuk"}
 >
   <!-- NAVBAR -->
   <nav
