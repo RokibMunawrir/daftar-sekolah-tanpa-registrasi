@@ -6,7 +6,7 @@ import node from '@astrojs/node';
 
 // https://astro.build/config
 export default defineConfig({
-  site: process.env.SITE || 'http://localhost:4321',
+  site: process.env.SITE || 'https://www.psb.smpitdarussalam.web.id',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   security: {

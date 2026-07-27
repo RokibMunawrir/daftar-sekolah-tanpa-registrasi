@@ -6,41 +6,42 @@ const {
   description = "Penerimaan Peserta Didik Baru (PPDB) Online",
   keyword,
   author,
-  ogImage,
+  ogImage, // Path relatif (contoh: "/images/hero.jpg") atau absolut
   ogType = "website",
   canonical,
   ogTitle,
   ogDescription,
 } = Astro.props;
 
-// Base URL
-const siteUrl = (Astro.site?.origin || Astro.url.origin).replace(/\/$/, "");
+// PERBAIKAN: Memastikan siteUrl selalu absolut, mengambil dari konfigurasi situs atau origin saat ini
+const siteUrl = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
 
 // Open Graph
 const resolvedOgTitle = ogTitle || title;
 const resolvedOgDescription = ogDescription || description;
 
+// PERBAIKAN: Penanganan fallback gambar default yang lebih aman
+const defaultOgImage = new URL("/og-image.png", siteUrl).href;
 const resolvedOgImage = ogImage
   ? ogImage.startsWith("http")
     ? ogImage
     : new URL(ogImage, siteUrl).href
-  : new URL("/og-image.png", siteUrl).href;
+  : defaultOgImage;
 
 // Canonical URL
 const resolvedCanonical = canonical
   ? new URL(canonical, siteUrl).href
-  : Astro.url.href;
+  : new URL(Astro.url.pathname, siteUrl).href;
 
-// Image MIME Type
+// Image MIME Type (Otomatis berdasarkan ekstensi)
 const imageType =
-  resolvedOgImage.endsWith(".jpg") ||
-  resolvedOgImage.endsWith(".jpeg")
+  resolvedOgImage.endsWith(".jpg") || resolvedOgImage.endsWith(".jpeg")
     ? "image/jpeg"
     : resolvedOgImage.endsWith(".webp")
       ? "image/webp"
       : "image/png";
 
-// JSON-LD
+// JSON-LD Schema
 const schema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -55,10 +56,7 @@ const schema = {
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- Icons -->
     <link rel="icon" href="/favicon.ico" />
@@ -70,148 +68,54 @@ const schema = {
     <!-- Generator -->
     <meta name="generator" content={Astro.generator} />
 
-    <!-- SEO -->
+    <!-- SEO Dasar -->
     <title>{title}</title>
-
     <meta name="title" content={title} />
     <meta name="description" content={description} />
 
-    {keyword && (
-      <meta
-        name="keywords"
-        content={keyword}
-      />
-    )}
-
-    {author && (
-      <meta
-        name="author"
-        content={author}
-      />
-    )}
-
-    <meta
-      name="robots"
-      content="index,follow"
-    />
+    {keyword && <meta name="keywords" content={keyword} />}
+    {author && <meta name="author" content={author} />}
+    <meta name="robots" content="index,follow" />
 
     <!-- Theme Color -->
-    <meta
-      name="theme-color"
-      content="#ffffff"
-    />
-
+    <meta name="theme-color" content="#ffffff" />
     <meta
       name="theme-color"
       media="(prefers-color-scheme: dark)"
       content="#020617"
     />
 
-    <!-- Open Graph -->
-    <meta
-      property="og:site_name"
-      content="PPDB Online 2026"
-    />
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:site_name" content="PPDB Online 2026" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={resolvedCanonical} />
+    <meta property="og:title" content={resolvedOgTitle} />
+    <meta property="og:description" content={resolvedOgDescription} />
 
-    <meta
-      property="og:locale"
-      content="id_ID"
-    />
-
-    <meta
-      property="og:type"
-      content={ogType}
-    />
-
-    <meta
-      property="og:url"
-      content={resolvedCanonical}
-    />
-
-    <meta
-      property="og:title"
-      content={resolvedOgTitle}
-    />
-
-    <meta
-      property="og:description"
-      content={resolvedOgDescription}
-    />
-
-    <meta
-      property="og:image"
-      content={resolvedOgImage}
-    />
-
-    <meta
-      property="og:image:secure_url"
-      content={resolvedOgImage}
-    />
-
-    <meta
-      property="og:image:type"
-      content={imageType}
-    />
-
-    <meta
-      property="og:image:width"
-      content="1200"
-    />
-
-    <meta
-      property="og:image:height"
-      content="630"
-    />
-
-    <meta
-      property="og:image:alt"
-      content={resolvedOgTitle}
-    />
+    <!-- URL Gambar HARUS absolut -->
+    <meta property="og:image" content={resolvedOgImage} />
+    <meta property="og:image:secure_url" content={resolvedOgImage} />
+    <meta property="og:image:type" content={imageType} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={resolvedOgTitle} />
 
     <!-- Twitter -->
-    <meta
-      name="twitter:card"
-      content="summary_large_image"
-    />
-
-    <meta
-      name="twitter:url"
-      content={resolvedCanonical}
-    />
-
-    <meta
-      name="twitter:title"
-      content={resolvedOgTitle}
-    />
-
-    <meta
-      name="twitter:description"
-      content={resolvedOgDescription}
-    />
-
-    <meta
-      name="twitter:image"
-      content={resolvedOgImage}
-    />
-
-    <meta
-      name="twitter:image:alt"
-      content={resolvedOgTitle}
-    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={resolvedCanonical} />
+    <meta name="twitter:title" content={resolvedOgTitle} />
+    <meta name="twitter:description" content={resolvedOgDescription} />
+    <meta name="twitter:image" content={resolvedOgImage} />
+    <meta name="twitter:image:alt" content={resolvedOgTitle} />
 
     <!-- Legacy -->
-    <link
-      rel="image_src"
-      href={resolvedOgImage}
-    />
+    <link rel="image_src" href={resolvedOgImage} />
 
     <!-- Structured Data -->
-    <script
-      type="application/ld+json"
-      set:html={JSON.stringify(schema)}
-    />
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
 
-    <!-- Theme -->
+    <!-- Theme Script -->
     <script is:inline>
       const theme = (() => {
         if (
@@ -220,28 +124,20 @@ const schema = {
         ) {
           return localStorage.getItem("theme");
         }
-
-        if (
-          window.matchMedia("(prefers-color-scheme: dark)").matches
-        ) {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
           return "dark";
         }
-
         return "light";
       })();
-
-      document.documentElement.classList.toggle(
-        "dark",
-        theme === "dark",
-      );
-
+      document.documentElement.classList.toggle("dark", theme === "dark");
       document.documentElement.style.colorScheme = theme;
-
       window.localStorage.setItem("theme", theme);
     </script>
   </head>
 
-  <body class="bg-white text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+  <body
+    class="bg-white text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100"
+  >
     <slot />
   </body>
 </html>
