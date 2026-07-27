@@ -21,7 +21,7 @@ const resolvedOgTitle = ogTitle || title;
 const resolvedOgDescription = ogDescription || description;
 
 // PERBAIKAN: Penanganan fallback gambar default yang lebih aman
-const defaultOgImage = new URL("/og-image.png", siteUrl).href;
+const defaultOgImage = new URL("/public/og-image.jpg", siteUrl).href;
 const resolvedOgImage = ogImage
   ? ogImage.startsWith("http")
     ? ogImage
