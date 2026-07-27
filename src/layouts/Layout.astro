@@ -1,16 +1,24 @@
 ---
 const {
-  title,
-  description,
+  title = "PPDB Online 2026",
+  description = "Penerimaan Peserta Didik Baru (PPDB) Online",
   keyword,
   author,
   ogImage,
-  ogType,
+  ogType = "website",
   canonical,
   ogTitle,
   ogDescription,
-} = Astro.props ?? "PPDB Online 2026";
+} = Astro.props;
 import "../styles/global.css";
+
+const siteUrl = Astro.url.origin;
+const resolvedOgImage = ogImage
+  ? (ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`)
+  : `${siteUrl}/og-image.png`;
+const resolvedOgTitle = ogTitle || title;
+const resolvedOgDescription = ogDescription || description;
+const resolvedCanonical = canonical || Astro.url.href;
 ---
 
 <!doctype html>
@@ -23,13 +31,22 @@ import "../styles/global.css";
 		<meta name="generator" content={Astro.generator} />
 		<meta name="title" content={title} />
 		<meta name="description" content={description} />
-		<meta name="keywords" content={keyword} />
-		<meta name="author" content={author} />
-		<meta property="og:title" content={ogTitle} />
-		<meta property="og:description" content={ogDescription} />
-		<meta property="og:image" content={ogImage} />
+		{keyword && <meta name="keywords" content={keyword} />}
+		{author && <meta name="author" content={author} />}
+		<meta property="og:title" content={resolvedOgTitle} />
+		<meta property="og:description" content={resolvedOgDescription} />
+		<meta property="og:image" content={resolvedOgImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
 		<meta property="og:type" content={ogType} />
-		<link rel="canonical" href={canonical} />
+		<meta property="og:url" content={resolvedCanonical} />
+		<meta property="og:locale" content="id_ID" />
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={resolvedOgTitle} />
+		<meta name="twitter:description" content={resolvedOgDescription} />
+		<meta name="twitter:image" content={resolvedOgImage} />
+		<link rel="canonical" href={resolvedCanonical} />
 		<title>{title}</title>
 		<script is:inline>
 			const theme = (() => {
