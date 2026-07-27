@@ -14,6 +14,7 @@ export default defineConfig({
   },
   integrations: [react()],
   vite: {
+    // @ts-ignore - Mengabaikan perbedaan definisi tipe Vite antara @tailwindcss/vite dan Astro
     plugins: [tailwindcss()],
   }
 });
