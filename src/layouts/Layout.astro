@@ -1,4 +1,6 @@
 ---
+import "../styles/global.css";
+
 const {
   title = "PPDB Online 2026",
   description = "Penerimaan Peserta Didik Baru (PPDB) Online",
@@ -10,61 +12,236 @@ const {
   ogTitle,
   ogDescription,
 } = Astro.props;
-import "../styles/global.css";
 
-const siteUrl = (Astro.site?.origin || Astro.url.origin).replace(/\/$/, '');
-const resolvedOgImage = ogImage
-  ? (ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`)
-  : `${siteUrl}/og-image.png`;
+// Base URL
+const siteUrl = (Astro.site?.origin || Astro.url.origin).replace(/\/$/, "");
+
+// Open Graph
 const resolvedOgTitle = ogTitle || title;
 const resolvedOgDescription = ogDescription || description;
-const resolvedCanonical = canonical || Astro.url.href;
+
+const resolvedOgImage = ogImage
+  ? ogImage.startsWith("http")
+    ? ogImage
+    : new URL(ogImage, siteUrl).href
+  : new URL("/og-image.png", siteUrl).href;
+
+// Canonical URL
+const resolvedCanonical = canonical
+  ? new URL(canonical, siteUrl).href
+  : Astro.url.href;
+
+// Image MIME Type
+const imageType =
+  resolvedOgImage.endsWith(".jpg") ||
+  resolvedOgImage.endsWith(".jpeg")
+    ? "image/jpeg"
+    : resolvedOgImage.endsWith(".webp")
+      ? "image/webp"
+      : "image/png";
+
+// JSON-LD
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: resolvedOgTitle,
+  url: siteUrl,
+  image: resolvedOgImage,
+  description: resolvedOgDescription,
+};
 ---
 
 <!doctype html>
 <html lang="id">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<meta name="title" content={title} />
-		<meta name="description" content={description} />
-		{keyword && <meta name="keywords" content={keyword} />}
-		{author && <meta name="author" content={author} />}
-		<meta property="og:title" content={resolvedOgTitle} />
-		<meta property="og:description" content={resolvedOgDescription} />
-		<meta property="og:image" content={resolvedOgImage} />
-		<meta property="og:image:width" content="1200" />
-		<meta property="og:image:height" content="630" />
-		<meta property="og:type" content={ogType} />
-		<meta property="og:url" content={resolvedCanonical} />
-		<meta property="og:locale" content="id_ID" />
-		<!-- Twitter Card -->
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content={resolvedOgTitle} />
-		<meta name="twitter:description" content={resolvedOgDescription} />
-		<meta name="twitter:image" content={resolvedOgImage} />
-		<link rel="canonical" href={resolvedCanonical} />
-		<title>{title}</title>
-		<script is:inline>
-			const theme = (() => {
-				if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
-					return localStorage.getItem('theme');
-				}
-				if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-					return 'dark';
-				}
-				return 'light';
-			})();
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
 
-			document.documentElement.classList.toggle('dark', theme === 'dark');
-			document.documentElement.style.colorScheme = theme;
-			window.localStorage.setItem('theme', theme);
-		</script>
-	</head>
-	<body class="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-		<slot />
-	</body>
+    <!-- Icons -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={resolvedCanonical} />
+
+    <!-- Generator -->
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- SEO -->
+    <title>{title}</title>
+
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+
+    {keyword && (
+      <meta
+        name="keywords"
+        content={keyword}
+      />
+    )}
+
+    {author && (
+      <meta
+        name="author"
+        content={author}
+      />
+    )}
+
+    <meta
+      name="robots"
+      content="index,follow"
+    />
+
+    <!-- Theme Color -->
+    <meta
+      name="theme-color"
+      content="#ffffff"
+    />
+
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#020617"
+    />
+
+    <!-- Open Graph -->
+    <meta
+      property="og:site_name"
+      content="PPDB Online 2026"
+    />
+
+    <meta
+      property="og:locale"
+      content="id_ID"
+    />
+
+    <meta
+      property="og:type"
+      content={ogType}
+    />
+
+    <meta
+      property="og:url"
+      content={resolvedCanonical}
+    />
+
+    <meta
+      property="og:title"
+      content={resolvedOgTitle}
+    />
+
+    <meta
+      property="og:description"
+      content={resolvedOgDescription}
+    />
+
+    <meta
+      property="og:image"
+      content={resolvedOgImage}
+    />
+
+    <meta
+      property="og:image:secure_url"
+      content={resolvedOgImage}
+    />
+
+    <meta
+      property="og:image:type"
+      content={imageType}
+    />
+
+    <meta
+      property="og:image:width"
+      content="1200"
+    />
+
+    <meta
+      property="og:image:height"
+      content="630"
+    />
+
+    <meta
+      property="og:image:alt"
+      content={resolvedOgTitle}
+    />
+
+    <!-- Twitter -->
+    <meta
+      name="twitter:card"
+      content="summary_large_image"
+    />
+
+    <meta
+      name="twitter:url"
+      content={resolvedCanonical}
+    />
+
+    <meta
+      name="twitter:title"
+      content={resolvedOgTitle}
+    />
+
+    <meta
+      name="twitter:description"
+      content={resolvedOgDescription}
+    />
+
+    <meta
+      name="twitter:image"
+      content={resolvedOgImage}
+    />
+
+    <meta
+      name="twitter:image:alt"
+      content={resolvedOgTitle}
+    />
+
+    <!-- Legacy -->
+    <link
+      rel="image_src"
+      href={resolvedOgImage}
+    />
+
+    <!-- Structured Data -->
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(schema)}
+    />
+
+    <!-- Theme -->
+    <script is:inline>
+      const theme = (() => {
+        if (
+          typeof localStorage !== "undefined" &&
+          localStorage.getItem("theme")
+        ) {
+          return localStorage.getItem("theme");
+        }
+
+        if (
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        ) {
+          return "dark";
+        }
+
+        return "light";
+      })();
+
+      document.documentElement.classList.toggle(
+        "dark",
+        theme === "dark",
+      );
+
+      document.documentElement.style.colorScheme = theme;
+
+      window.localStorage.setItem("theme", theme);
+    </script>
+  </head>
+
+  <body class="bg-white text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+    <slot />
+  </body>
 </html>
