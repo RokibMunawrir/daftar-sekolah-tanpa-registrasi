@@ -25,11 +25,11 @@ import "../styles/global.css";
 		<meta name="description" content={description} />
 		<meta name="keywords" content={keyword} />
 		<meta name="author" content={author} />
-		<meta name="og:title" content={ogTitle} />
-		<meta name="og:description" content={ogDescription} />
-		<meta name="og:image" content={ogImage} />
-		<meta name="og:type" content={ogType} />
-		<meta name="canonical" content={canonical} />
+		<meta property="og:title" content={ogTitle} />
+		<meta property="og:description" content={ogDescription} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:type" content={ogType} />
+		<link rel="canonical" href={canonical} />
 		<title>{title}</title>
 		<script is:inline>
 			const theme = (() => {
