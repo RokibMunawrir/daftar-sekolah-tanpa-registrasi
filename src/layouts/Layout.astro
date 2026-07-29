@@ -1,17 +1,15 @@
 ---
 import "../styles/global.css";
 
-const {
-  title = "PPDB Online 2026",
-  description = "Penerimaan Peserta Didik Baru (PPDB) Online",
-  keyword,
-  author,
-  ogImage, // Path relatif (contoh: "/images/hero.jpg") atau absolut
-  ogType = "website",
-  canonical,
-  ogTitle,
-  ogDescription,
-} = Astro.props;
+const title = Astro.props.title || "PPDB Online 2026 | SMP IT Darussalam Luwuk";
+const description = Astro.props.description || "Penerimaan Peserta Didik Baru (PPDB) Online | SMP IT Darussalam Luwuk";
+const keyword = Astro.props.keyword || "PPDB Online 2026, SMP IT Darussalam Luwuk";
+const author = Astro.props.author || "SMP IT Darussalam Luwuk";
+const ogImage = Astro.props.ogImage || "/og-image.jpg";
+const ogType = Astro.props.ogType || "website";
+const canonical = Astro.props.canonical || Astro.url.href;
+const ogTitle = Astro.props.ogTitle || title;
+const ogDescription = Astro.props.ogDescription || description;
 
 // PERBAIKAN: Memastikan siteUrl selalu absolut, mengambil dari konfigurasi situs atau origin saat ini
 const siteUrl = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
