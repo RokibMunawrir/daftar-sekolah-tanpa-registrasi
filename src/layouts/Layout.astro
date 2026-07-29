@@ -1,4 +1,5 @@
 ---
+/* @jsxImportSource astro */
 import "../styles/global.css";
 
 const title = Astro.props.title || "PPDB Online 2026 | SMP IT Darussalam Luwuk";
@@ -10,40 +11,11 @@ const ogType = Astro.props.ogType || "website";
 const canonical = Astro.props.canonical || Astro.url.href;
 const ogTitle = Astro.props.ogTitle || title;
 const ogDescription = Astro.props.ogDescription || description;
-
-// PERBAIKAN: Memastikan siteUrl selalu absolut, mengambil dari konfigurasi situs atau origin saat ini
-const siteUrl = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
-
-// Open Graph
-const resolvedOgTitle = ogTitle || title;
-const resolvedOgDescription = ogDescription || description;
-
-// PERBAIKAN: Penanganan fallback gambar default yang lebih aman
-const defaultOgImage = new URL("/uploads/og-image.jpg", siteUrl).href;
-const resolvedOgImage = ogImage
-  ? ogImage.startsWith("http")
-    ? ogImage
-    : new URL(ogImage, siteUrl).href
-  : defaultOgImage;
-const resolvedOgImageType = resolvedOgImage.endsWith(".png")
-  ? "image/png"
-  : resolvedOgImage.endsWith(".webp")
-    ? "image/webp"
-    : "image/jpeg";
-
-// Canonical URL
-const resolvedCanonical = canonical
-  ? new URL(canonical, siteUrl).href
-  : new URL(Astro.url.pathname, siteUrl).href;
-
-// JSON-LD Schema
-const schema = {
+const schema = Astro.props.schema || {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: resolvedOgTitle,
-  url: siteUrl,
-  image: resolvedOgImage,
-  description: resolvedOgDescription,
+  "name": title,
+  "url": canonical
 };
 ---
 
@@ -58,7 +30,7 @@ const schema = {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Canonical -->
-    <link rel="canonical" href={resolvedCanonical} />
+    <link rel="canonical" href={canonical} />
 
     <!-- Generator -->
     <meta name="generator" content={Astro.generator} />
@@ -84,25 +56,25 @@ const schema = {
     <meta property="og:site_name" content="PPDB Online 2026" />
     <meta property="og:locale" content="id_ID" />
     <meta property="og:type" content={ogType} />
-    <meta property="og:url" content={resolvedCanonical} />
-    <meta property="og:title" content={resolvedOgTitle} />
-    <meta property="og:description" content={resolvedOgDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={ogDescription} />
 
     <!-- URL Gambar HARUS absolut -->
-    <meta property="og:image" content={resolvedOgImage} />
-    <meta property="og:image:secure_url" content={resolvedOgImage} />
-    <meta property="og:image:type" content={resolvedOgImageType} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:secure_url" content={ogImage} />
+    <meta property="og:image:type" content={ogImage} />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content={resolvedCanonical} />
-    <meta name="twitter:title" content={resolvedOgTitle} />
-    <meta name="twitter:description" content={resolvedOgDescription} />
-    <meta name="twitter:image" content={resolvedOgImage} />
-    <meta name="twitter:image:alt" content={resolvedOgTitle} />
+    <meta name="twitter:url" content={canonical} />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={ogDescription} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogTitle} />
 
     <!-- Legacy -->
-    <link rel="image_src" href={resolvedOgImage} />
+    <link rel="image_src" href={ogImage} />
 
     <!-- Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify(schema)} />

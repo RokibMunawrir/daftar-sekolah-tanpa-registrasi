@@ -139,7 +139,23 @@ const labelClass = "text-xs font-bold text-slate-400 dark:text-slate-500 upperca
 const sectionClass = "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm";
 ---
 
-<Layout title={`Edit ${dataSantri?.namaLengkap} | Admin PPDB`}>
+<Layout title={`Edit ${dataSantri?.namaLengkap} | Admin PPDB`}
+  description="Edit pendaftaran siswa baru"
+  canonical={Astro.url.href}
+  ogTitle={`Edit ${dataSantri?.namaLengkap} | Admin PPDB`}
+  ogDescription="Edit pendaftaran siswa baru"
+  ogImage="/og-image.jpg"
+  ogType="website"
+  author="SMP IT Darussalam Luwuk"
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": `Edit ${dataSantri?.namaLengkap} | Admin PPDB`,
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": "Edit pendaftaran siswa baru"
+  }}
+>
   <Panel activeMenu="pendaftar">
     <div class="py-4">
       

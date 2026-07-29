@@ -35,7 +35,20 @@ const listPenghasilan = ['Kurang dari Rp 500.000', 'Rp 500.000 - Rp 1.000.000', 
 
 <Layout title="Form Pendaftaran Siswa | PPDB Online"
 description="Formulir pendaftaran siswa baru SMP IT Darussalam Luwuk"
-keywords="Pendaftaran, SMPIT, Darussalam, Luwuk, PPDB"
+canonical={Astro.url.href}
+ogTitle="Form Pendaftaran Siswa | PPDB Online"
+ogDescription="Formulir pendaftaran siswa baru SMP IT Darussalam Luwuk"
+ogImage="/og-image.jpg"
+ogType="website"
+author="SMP IT Darussalam Luwuk"
+schema={{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Form Pendaftaran Siswa | PPDB Online",
+  "url": Astro.url.href,
+  "image": "/og-image.jpg",
+  "description": "Formulir pendaftaran siswa baru SMP IT Darussalam Luwuk"
+}}
 >
   <main class="py-12 px-4 bg-slate-50 dark:bg-slate-950 min-h-screen">
     <div class="max-w-4xl mx-auto">

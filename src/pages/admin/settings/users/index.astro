@@ -3,6 +3,23 @@ import Layout from "../../../../layouts/Layout.astro";
 import Users from "../../../../components/astro/admin/users.astro";
 ---
 
-<Layout title="Manajemen Akun Operator | Admin Panel">
+<Layout
+  title="Manajemen Akun Operator | Admin Panel"
+  description="Manajemen akun operator PPDB Online 2026"
+  canonical={Astro.url.href}
+  ogTitle="Manajemen Akun Operator | Admin Panel"
+  ogDescription="Manajemen akun operator PPDB Online 2026"
+  ogImage="/og-image.jpg"
+  ogType="website"
+  author="SMP IT Darussalam Luwuk"
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Manajemen Akun Operator | Admin Panel",
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": "Manajemen akun operator PPDB Online 2026"
+  }}
+>
   <Users />
 </Layout>

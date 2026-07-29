@@ -125,6 +125,14 @@ import Layout from "../layouts/Layout.astro";
   ogType="website"
   canonical={Astro.url.href}
   author={settingsMap["school_name"] || "SMP IT Darussalam Luwuk"}
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": `PPDB ${school.name}`,
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": school.subtitle
+  }}
 >
   <!-- NAVBAR -->
   <nav

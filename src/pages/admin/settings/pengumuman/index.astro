@@ -97,6 +97,23 @@ if (existing && existing.value) {
 }
 ---
 
-<Layout title="Manajemen Pengumuman | Admin Panel">
+<Layout
+  title="Manajemen Pengumuman | Admin Panel"
+  description="Manajemen pengumuman PPDB Online 2026"
+  canonical={Astro.url.href}
+  ogTitle="Manajemen Pengumuman | Admin Panel"
+  ogDescription="Manajemen pengumuman PPDB Online 2026"
+  ogImage="/og-image.jpg"
+  ogType="website"
+  author="SMP IT Darussalam Luwuk"
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Manajemen Pengumuman | Admin Panel",
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": "Manajemen pengumuman PPDB Online 2026"
+  }}
+>
   <Announcement announcements={announcements} errorMessage={errorMessage} successMessage={successMessage} />
 </Layout>

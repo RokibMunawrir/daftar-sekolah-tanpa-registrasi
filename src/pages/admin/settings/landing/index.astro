@@ -78,6 +78,23 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<Layout title="Pengaturan Landing Page | Admin Panel" description="Kelola tampilan halaman utama website.">
+<Layout
+  title="Pengaturan Landing Page | Admin Panel"
+  description="Kelola tampilan halaman utama website."
+  canonical={Astro.url.href}
+  ogTitle="Pengaturan Landing Page | Admin Panel"
+  ogDescription="Kelola tampilan halaman utama website."
+  ogImage="/og-image.jpg"
+  ogType="website"
+  author="SMP IT Darussalam Luwuk"
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Pengaturan Landing Page | Admin Panel",
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": "Kelola tampilan halaman utama website."
+  }}
+>
   <Landing errorMessage={errorMessage} />
 </Layout>

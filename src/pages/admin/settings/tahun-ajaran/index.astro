@@ -3,6 +3,23 @@ import Layout from "../../../../layouts/Layout.astro";
 import Years from "../../../../components/astro/admin/years.astro";
 ---
 
-<Layout title="Pengaturan Tahun Ajaran | Admin Panel" description="Atur status aktif tahun akademik dan penerimaan siswa.">
+<Layout
+  title="Pengaturan Tahun Ajaran | Admin Panel"
+  description="Atur status aktif tahun akademik dan penerimaan siswa."
+  canonical={Astro.url.href}
+  ogTitle="Pengaturan Tahun Ajaran | Admin Panel"
+  ogDescription="Atur status aktif tahun akademik dan penerimaan siswa."
+  ogImage="/og-image.jpg"
+  ogType="website"
+  author="SMP IT Darussalam Luwuk"
+  schema={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Pengaturan Tahun Ajaran | Admin Panel",
+    "url": Astro.url.href,
+    "image": "/og-image.jpg",
+    "description": "Atur status aktif tahun akademik dan penerimaan siswa."
+  }}
+>
   <Years />
 </Layout>

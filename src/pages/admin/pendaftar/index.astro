@@ -3,6 +3,23 @@ import List from "../../../components/astro/admin/list.astro";
 import Layout from "../../../layouts/Layout.astro";
 ---
 
-<Layout title="Daftar Calon Siswa | Admin Panel" description="Kelola data pendaftaran siswa baru.">
-  <List />
+<Layout 
+	title="Daftar Calon Siswa | Admin Panel" 
+	description="Kelola data pendaftaran siswa baru."
+	canonical={Astro.url.href}
+	ogTitle="Daftar Calon Siswa | Admin Panel"
+	ogDescription="Kelola data pendaftaran siswa baru."
+	ogImage="/og-image.jpg"
+	ogType="website"
+	author="SMP IT Darussalam Luwuk"
+	schema={{
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"name": "Daftar Calon Siswa | Admin Panel",
+		"url": Astro.url.href,
+		"image": "/og-image.jpg",
+		"description": "Kelola data pendaftaran siswa baru."
+	}}
+>
+	<List />
 </Layout>

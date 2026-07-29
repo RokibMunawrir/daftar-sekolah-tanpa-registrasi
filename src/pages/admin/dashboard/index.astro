@@ -3,6 +3,23 @@ import AdminDashboard from "../../../components/astro/admin/dashboard.astro";
 import Layout from "../../../layouts/Layout.astro";
 ---
 
-<Layout title="Admin Dashboard" description="Admin Dashboard" >
+<Layout 
+	title="Admin Dashboard" 
+	description="Admin Dashboard" 
+	canonical={Astro.url.href}
+	ogTitle="Admin Dashboard"
+	ogDescription="Admin Dashboard"
+	ogImage="/og-image.jpg"
+	ogType="website"
+	author="SMP IT Darussalam Luwuk"
+	schema={{
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"name": "Admin Dashboard",
+		"url": Astro.url.href,
+		"image": "/og-image.jpg",
+		"description": "Admin Dashboard"
+	}}
+>
 	<AdminDashboard/>
 </Layout>
