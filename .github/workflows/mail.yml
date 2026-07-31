@@ -1,4 +1,4 @@
-name: Web Sekolah Send Email
+name: Web Sekolah
 on:
   push:
     branches: [ "main" ]
