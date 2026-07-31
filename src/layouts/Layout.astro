@@ -6,17 +6,14 @@ const title = Astro.props.title || "PPDB Online 2026 | SMP IT Darussalam Luwuk";
 const description = Astro.props.description || "Penerimaan Peserta Didik Baru (PPDB) Online | SMP IT Darussalam Luwuk";
 const keyword = Astro.props.keyword || "PPDB Online 2026, SMP IT Darussalam Luwuk";
 const author = Astro.props.author || "SMP IT Darussalam Luwuk";
-const ogImage = Astro.props.ogImage || "/og-image.jpg";
 const ogType = Astro.props.ogType || "website";
 const canonical = Astro.props.canonical || Astro.url.href;
 const ogTitle = Astro.props.ogTitle || title;
 const ogDescription = Astro.props.ogDescription || description;
-const schema = Astro.props.schema || {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": title,
-  "url": canonical
-};
+
+// PERBAIKAN: Mengubah relative path menjadi Absolute URL menggunakan base URL saat ini
+const imagePath = Astro.props.ogImage || Astro.props.image || "/og-image.jpg";
+const ogImage = new URL(imagePath, Astro.url).href; 
 ---
 
 <!doctype html>
@@ -60,10 +57,10 @@ const schema = Astro.props.schema || {
     <meta property="og:title" content={ogTitle} />
     <meta property="og:description" content={ogDescription} />
 
-    <!-- URL Gambar HARUS absolut -->
+    <!-- PERBAIKAN: URL Gambar sekarang otomatis absolut -->
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:secure_url" content={ogImage} />
-    <meta property="og:image:type" content={ogImage} />
+    <!-- PERBAIKAN: Tag <meta property="og:image:type" content={ogImage} /> dihapus karena nilainya salah. -->
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -75,9 +72,6 @@ const schema = Astro.props.schema || {
 
     <!-- Legacy -->
     <link rel="image_src" href={ogImage} />
-
-    <!-- Structured Data -->
-    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
 
     <!-- Theme Script -->
     <script is:inline>
