@@ -1,24 +1,37 @@
 name: Web Sekolah
 on:
   push:
-    branches: [ "main" ]
-  
+    branches: ["main"]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build
         run: npm run build
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-build
           path: dist/
+
+      - name: Deploy Cpanel FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          server-dir: /home/smpitdar/psb.smpitdarussalamluwuk.web.id/
+          local-dir: dist/
